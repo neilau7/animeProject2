@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>瘋動畫</title>
+    <style>
+        body{
+            background-color: black;
+        }
+        #menu{
+            padding-top: 50px;
+        }
+        section{
+            margin: 2%;
+        }
+        .img-area{
+            
+            width: 100%;
+            margin: auto;
+            
+            overflow-x:scroll;
+            white-space: nowrap;
+        
+        }
+
+        .img-area::-webkit-scrollbar {
+            width: 8px; /* 设置滚动条宽度 */
+          }
+          
+          .img-area::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0); /* 设置滚动条拖动部分背景为透明 */
+          }
+          
+          .img-area:hover::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.8); /* 鼠标悬停时显示滚动条 */
+          }
+
+        .img-container{
+            height: 250px;
+            width: 267px;
+            display: inline-block;
+            
+            text-align: center;
+            
+            margin:5px;
+            overflow: hidden;
+        }
+
+        .img-mask{
+            background-color: rgb(50, 50, 50);
+            height: 200px;
+            width: 267px;
+            overflow: hidden;
+            
+        }
+
+        img{
+            max-height: 100%;
+            padding: auto;
+            margin: auto;
+            width: fit-content;
+            height: fit-content;
+            
+            
+         
+        }
+        .img-title{
+            color: aliceblue;
+            text-align: center;
+            padding: auto;
+        }
+        a{
+            text-decoration: none;
+        }
+        h3{
+            margin-top: -10px;
+            font-size:x-large;
+            color: aliceblue;
+        }
+
+        /*top -bar*/
+        #top-bar{
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            width: 100%;
+            height: 60px;
+            background-color: rgba(50, 50, 50,0.9);
+        }
+        .inline{
+            display: inline;
+        }
+        .top-bar-item{
+            margin: 0px 10px;
+            color: aliceblue;
+        }
+        #top-bar-title{
+            color:aliceblue;
+            font-size: large;
+            margin-right: 20px;
+            
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+
+        <ul>
+            <li id="top-bar-title" class="top-bar-item inline">瘋動畫</li>
+            <li class="top-bar-item inline">首頁</li>
+            <li class="top-bar-item inline">分業</li>
+        </ul>
+    </div>
+    <div id="menu">
+        <section >
+            <h3>熱門推薦</h3>
+            <div id="hot" class="img-area">
+                
+                
+                
+            </div>
+        </section>
+        <section>
+            <h3>最新</h3>
+            <div id="new" class="img-area">
+                
+                
+            </div>
+        </section>
+        <section>
+            <h3>隨選</h3>
+            <div id="random" class="img-area">
+        
+                
+            </div>
+            
+        </section>
+    </div>
+    <script>
+
+        const hotEle = document.getElementById('hot');
+        const newEle = document.getElementById('new');
+        const randomEle = document.getElementById('random');
+
+        generateArticleChild(hotEle,'hot',30);
+        generateArticleChild(newEle,'new',30);
+        generateArticleChild(randomEle,'random',30);
+
+        async function generateArticleChild(parentEle,apiType,num){
+            
+            const response = await fetch(`/api/${apiType}?num=${num}`);
+            const data = await response.json();
+
+            Array.from(data).forEach((ele) => {
+                console.log(ele);
+                const articleEle = document.createElement('article');
+                articleEle.className = "img-container";
+                const urlEle = document.createElement('a');
+                urlEle.href = ele.url;
+                urlEle.target = "_blank";
+                const imgMaskEle = document.createElement('div');
+                imgMaskEle.className = "img-mask";
+                const imgEle = document.createElement('img');
+                imgEle.src = (ele.imgUrl)? ele.imgUrl: 'https://st4.depositphotos.com/14953852/24787/v/450/depositphotos_247872612-stock-illustration-no-image-available-icon-vector.jpg';
+                const titleEle = document.createElement('p');
+                titleEle.textContent = ele.title;
+
+                imgMaskEle.appendChild(imgEle); //like this : <article class="img-container"><a href="#"><div class="img-mask"><img src="imgUrl"></div><p class="img-title">Name</p></a></article>
+                urlEle.appendChild(imgMaskEle);
+                urlEle.appendChild(titleEle);
+                articleEle.appendChild(urlEle);
+                parentEle.appendChild(articleEle);
+            });
+        };
+
+        
+    </script>
+</body>

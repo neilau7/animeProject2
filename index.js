@@ -10,6 +10,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const { stringify } = require('querystring');
 const { google } = require('googleapis'); //google search
+const { resolve } = require('path');
 
 require('dotenv').config(); //load env
 
@@ -168,6 +169,37 @@ function saveToDatabaseYoutube(filePath , keyword, maxNum, page){
         console.log(`Save to database err : ${err}`);
     })
 
+}
+async function saveAllToDatabaseYoutube(filePath){
+    const data = await readData(filePath);
+
+    try{
+        await mongoose.connect(process.env.mongooseUrl);
+        console.log('database connected.');
+    }
+    catch (err){
+        console.log(`database can't connect \n ${err}`);
+    }
+    
+    Array.from(data).forEach(async (ele)=>{
+        
+        const urlTarget = await animeTable.findOne({"url":ele.url});
+        if (!urlTarget){
+            try{
+                console.log('Save Data Start');
+                const saveData = new animeTable(ele);
+                await saveData.save();
+                console.log(`upload finished : ${ele}`);
+            }catch(err){
+                console.log(`save data err : \n ${err}`);
+            }
+        }else{
+            console.log(`Data exists ${urlTarget}`);
+        }
+        
+    });
+    console.log(' saveAllToDatabaseYoutube finish');
+    return ;
 }
 
 async function updateToDatabase(newData){     //if oldData doesn't exist, we add the new Data to database.
@@ -426,19 +458,99 @@ function readData(filePath){                                     //read the data
 //                           //
 ///////////////////////////////
 
-mongoose.connect(process.env.mongooseUrl, { useNewUrlParser: true, useUnifiedTopology: true }).then(async ()=>{
+mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     console.log('database connected.')
-    //Save youtube playlists to disk
+    // Save youtube playlists to disk
     //await getPlaylists(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${aniOneChannelId}&key=${youtubeApi}`,'playlist_aniOne.json','aniOne');
     //await getPlaylists(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${museChannelId}&key=${youtubeApi}`,'playlist_muse.json','Muse');
+    // upload to database
     //saveToDatabaseYoutube('playlist_aniOne.json','',0,1);
     //saveToDatabaseYoutube('playlist_muse.json','',0,1);    
+    //saveAllToDatabaseYoutube('playlist_aniOne.json');
+    saveAllToDatabaseYoutube('playlist_muse.json');
+    //getPlaylistsAnime1();
 
     //processHtmlAnime1('https://anime1.me/?s=%E7%95%B0%E4%BF%AE%E7%BE%85');
-    getPlaylistsAnime1();
+
+    /////////////
+    app.get('/', function (req, res) {
+        console.log("path = ",process.cwd());
+        res.sendFile(process.cwd() + '/views/mainPage.html');
+    });
+    
+    app.get('/api/new',async (req,res)=>{
+        const num = (req.query.num)? parseInt(req.query.num) : 0;
+        const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
+        try{
+            const results = await animeTable.find()
+            .sort({ date: -1 }) // 按照时间戳降序排序
+            .skip(skip)
+            .limit(num); // 限制结果数量
+            res.json(results);
+        }catch(err){
+            console.log(`new router err`);
+            res.json({});
+        }
+        
+        
+        
+    });
+    
+    
+    app.get('/api/hot',async (req,res)=>{
+        console.log(` hot router`);
+        const num = (req.query.num)? parseInt(req.query.num) : 0;
+        const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
+    
+        try{
+            
+            const results = await animeTable.find()
+                .sort({ count: -1 }) // 按照降序排序
+                .skip(skip)
+                .limit(num); // 限制结果数量
+            if (results.length === 0){
+                const allResults = await animeTable.find().limit(num);
+                res.json(allResults);
+                
+            }
+            res.json(results);
+        }catch(err){
+            console.log(`hot router err : \n ${err}`);
+            res.json({});
+    
+        }
+        
+    });
+    
+    
+    app.get('/api/random',(req,res)=>{
+        const num = (req.query.num)? parseInt(req.query.num) : 0;
+        
+        animeTable.aggregate([
+            { $sample: { size: num } } // 从集合中随机获取 10 条数据
+          ])
+          .then(result => {
+            console.log(result); // 输出随机获取的数据
+            res.json(result);
+          })
+          .catch(err => {
+            console.log(`random router Err : \n ${err}`); // 打印错误信息
+            res.json({});
+          });
+          
+      });
+    ////////////
+    
 
 }).catch((err) => {
     console.log(`Connect Mongoose fail`);
 })
 
 
+
+
+//listen port
+const port = process.env.PORT || 3000;
+app.listen(port, function () {
+  console.log('Your app is listening on port ' + port)
+});
