@@ -113,9 +113,15 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
                 }
             
                 // 输出搜索结果
-                resData.imgUrl = res.data.items[0].link;
-                console.log('getDateImgAnime1 response : \n', resData);
-                resolve(resData);
+                try{
+                    resData.imgUrl = res.data.items[0].link;
+                    console.log('getDateImgAnime1 response : \n', resData);
+                    resolve(resData);
+                }catch(err){
+                    console.log(`fetch anime1 imgUrl err :\n ${err}`);
+                    resolve(resData);
+                }
+                
             });
             
         })
@@ -164,7 +170,41 @@ function saveToDatabaseYoutube(filePath , keyword, maxNum, page){
 
 }
 
-function saveToDatabase(oldData,newData){
+async function updateToDatabase(newData){     //if oldData doesn't exist, we add the new Data to database.
+                                             //if oldData exist,we update the new data.
+                                             //oldData is single data
+    try{
+        await mongoose.connect(process.env.mongooseUrl);
+        console.log('database connected.');
+    }
+    catch (err){
+        console.log(`database can't connect \n ${err}`);
+    }
+    Array.from(newData).forEach(async ele=>{
+        try{
+            const oldData = await animeTable.findOne({"url":ele.url});
+            if (!oldData){
+                const saveData = new animeTable(ele); //create data instance
+                await saveData.save();
+            }else if (oldData !== newData){
+                if (newData.date > oldData.date){
+                    oldData.title = newData.title;
+                    oldData.from = newData.from;
+                    oldData.date = newData.date;
+                    if (!oldData.imgUrl){
+                        oldData.imgUrl = newData.imgUrl; // if original img is null
+                    }
+                    
+                }
+            }
+        }
+        catch(err){
+            console.log(`updateToDatabse Err : \n ${err}`);
+        }
+        
+
+    });
+
     return;
 }
 
@@ -325,8 +365,18 @@ function getPlaylistsAnime1(){
         Array.from(data).forEach(async ele => {
             const anime1Id = ele[0];
             const title = ele[1];
-            const dateImgData = await getDateImgAnime1(title);
+            var dateImgData = { //default
+                imgUrl:'',
+                date:null
+            };
+            
+            try{
+                dateImgData = await getDateImgAnime1(title);
+            }catch(err){
+                console.log(`getDateImgAnime1 Error :\n ${err}`);
 
+            }
+            
             const resdata = {
                 title:title,
                 url:`https://anime1.me/?cat=` + anime1Id,
@@ -335,7 +385,7 @@ function getPlaylistsAnime1(){
                 from:'anime1'
 
             }
-            
+            await updateToDatabase([resdata]);
             console.log(`final anime1 data \n ${JSON.stringify(resdata)}`);
 
 
@@ -346,8 +396,8 @@ function getPlaylistsAnime1(){
 
 
 // << simple func >>
-function readData(filePath){ // we need to do the decoding of 'title' key
-    return new Promise((resolve, reject) => {
+function readData(filePath){                                     //read the data in disk of youtube playlists
+    return new Promise((resolve, reject) => {                    // we need to do the decoding of 'title' key
         fs.readFile(filePath, 'utf8', (err, oldDataJson) => {
             if (err) {
               console.error('Error reading file:', err);
