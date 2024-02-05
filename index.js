@@ -14,7 +14,7 @@ const { resolve } = require('path');
 
 require('dotenv').config(); //load env
 
-app.use(bodyParser.urlencoded({ extended: true })); //true means it can look for deep element
+app.use(express.urlencoded({ extended: true })); //true means it can look for deep element
 app.use(cors());
 app.use('/public', express.static(process.cwd() + '/public'));
 
@@ -36,7 +36,7 @@ const animeSchema = {
     imgUrl:{type:String},
     url:{type:String, require:true}, //playlist Url
     from:{type:String, require:true},
-    count:{type:Number,require:true},
+    count:{type:[Date],require:true},
     date:{type:Date,require:true}
 };
 
@@ -240,8 +240,8 @@ async function updateToDatabase(newData){     //if oldData doesn't exist, we add
     return;
 }
 
-async function updateCount(playlistUrls){
-    const urlTarget = await animeTable.findOne({"url":ele.url});
+async function updateCount(playlistUrl){
+    const urlTarget = await animeTable.findOne({"url":playlistUrl});
     console.log(`urlTarget : ${urlTarget}`);
     if (!urlTarget){
         try{
@@ -467,7 +467,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     //saveToDatabaseYoutube('playlist_aniOne.json','',0,1);
     //saveToDatabaseYoutube('playlist_muse.json','',0,1);    
     //saveAllToDatabaseYoutube('playlist_aniOne.json');
-    saveAllToDatabaseYoutube('playlist_muse.json');
+    //saveAllToDatabaseYoutube('playlist_muse.json');
     //getPlaylistsAnime1();
 
     //processHtmlAnime1('https://anime1.me/?s=%E7%95%B0%E4%BF%AE%E7%BE%85');
@@ -540,7 +540,51 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
           
       });
     ////////////
-    
+    app.post('/api/count',async (req,res)=>{
+        console.log(`count start`);
+        //console.log(`req : ${JSON.parse(req)}`);
+        const url = req.body.url;
+        const clickDate = (req.body.clickDate)? new Date(req.body.clickDate) : new Date();
+        console.log(`url : ${url}`);
+        if (url){
+
+            try{
+                
+                const results = await animeTable.findOneAndUpdate(
+                    {url:url},
+                    {$push : {count : clickDate}} // means the date which is clicked
+                );
+                console.log(`Count is ${results.count}`);
+                res.send(`Count is ${results.count}`);
+
+                
+                
+            }catch(err){
+                console.log(`count router err : \n ${err}`);
+                //try add new count = 1;
+                try{
+                    const results = await animeTable.findOneAndUpdate(
+                        {url:url},
+                        {$set : {count:[clickDate]}} // means count = count + 1
+                    );
+                    console.log(`Build Count, Count is ${results.count}`);
+                    res.send(`Build Count, Count is ${results.count}`);
+                }
+                catch(err){
+                    console.log(`Add count key fail :\n ${err}`);
+                    res.send(`Add count key fail`);
+
+                }
+                
+
+                //res.send('Error about finding url for counting');
+        
+            }
+            
+        }
+
+
+    });
 
 }).catch((err) => {
     console.log(`Connect Mongoose fail`);
