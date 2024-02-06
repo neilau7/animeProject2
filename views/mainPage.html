@@ -119,38 +119,38 @@
         </ul>
     </div>
     <div id="menu">
-        <section >
-            <h3>熱門推薦</h3>
+        <section class="result-area">
+            <h3 class="subTitle">熱門推薦</h3>
             <div id="hot" class="img-area">
                 
                 
                 
             </div>
         </section>
-        <section>
-            <h3>最新</h3>
+        <section class="result-area">
+            <h3 class="subTitle">最新</h3>
             <div id="new" class="img-area">
                 
                 
             </div>
         </section>
-        <section>
-            <h3>隨選</h3>
+        <section class="result-area">
+            <h3 class="subTitle">隨選</h3>
             <div id="random" class="img-area">
         
                 
             </div>
             
         </section>
-        <section>
-            <h3>本週最佳</h3>
+        <section class="result-area">
+            <h3 class="subTitle">本週最佳</h3>
             <div id="week" class="img-area">
                 
                 
             </div>
         </section>
-        <section>
-            <h3>本月最佳</h3>
+        <section class="result-area">
+            <h3 class="subTitle">本月最佳</h3>
             <div id="month" class="img-area">
                 
                 
@@ -164,6 +164,9 @@
         const randomEle = document.getElementById('random');
         const weekEle = document.getElementById('week');
         const monthEle = document.getElementById('month');
+
+        // generate link of sub-title
+        generateLinkOfSubTitle();
 
         generateArticleChild(hotEle,'hot',30);
         generateArticleChild(newEle,'new',30);
@@ -187,13 +190,15 @@
                 urlEle['data-click'] = false; //是否被點擊過
                 urlEle['data-img'] = (ele.imgUrl)? ele.imgUrl: '';   //imgUrl 
                 urlEle['data-title'] = ele.title;
-                counter(urlEle);
+                counter(urlEle); // click計數
                 const imgMaskEle = document.createElement('div');
                 imgMaskEle.className = "img-mask";
                 const imgEle = document.createElement('img');
                 imgEle.src = (ele.imgUrl)? ele.imgUrl: 'https://st4.depositphotos.com/14953852/24787/v/450/depositphotos_247872612-stock-illustration-no-image-available-icon-vector.jpg';
                 const titleEle = document.createElement('p');
                 titleEle.textContent = ele.title;
+                titleEle.className = "img-title";
+                
 
                 imgMaskEle.appendChild(imgEle); //like this : <article class="img-container"><a href="#"><div class="img-mask"><img src="imgUrl"></div><p class="img-title">Name</p></a></article>
                 urlEle.appendChild(imgMaskEle);
@@ -256,6 +261,31 @@
             });
         };
 
-        
+        function generateLinkOfSubTitle(){
+            const resultEles = document.getElementsByClassName('result-area');
+            console.log(`resultEles : ${resultEles}`);
+            Array.from(resultEles).forEach((ele) => {
+                console.log(`ele : \n${ele}`);
+                const titleEle = ele.firstElementChild;
+                const imgAreaEle = ele.firstElementChild.nextElementSibling;
+                const apiSegment = imgAreaEle.id;
+                const encodeTitle = encodeURIComponent( titleEle.textContent );
+                const linkEle = document.createElement('a');
+
+                const new_titleEle = titleEle.cloneNode(true);
+                linkEle.href = `/showallpage/${apiSegment}/${encodeTitle}`;
+                linkEle.appendChild(new_titleEle);
+
+                ele.insertAdjacentElement('afterbegin',linkEle); // add new element
+                ele.removeChild(ele.firstChild.nextElementSibling); // remove old element
+
+                console.log(`titleEle : ${titleEle}`);
+                console.log(`imgAreaEle : ${imgAreaEle}`);
+                console.log(`apiSegment : ${apiSegment}`);
+
+            });
+
+            
+        };
     </script>
 </body>

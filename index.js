@@ -70,7 +70,7 @@ const processHtmlYoutube = (filePath, keyword, maxNum, page) => {
                 resolve(playListFilters); 
             }
             else if (pageInt <= lastPage){
-                resolve(playListFilters.slice( (pageInt - 1)*maxNum, pageInt*maxNum - 1 )); 
+                resolve(playListFilters.slice( (pageInt - 1)*maxNum, pageInt*maxNum )); 
                 
             }else{
                 resolve([]); 
@@ -802,6 +802,13 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
 })
 
 
+//export variable to another js
+module.exports = {
+    animeTable
+  };
+//load another js
+const routes_showAllPage = require('./showallpage/index2');
+app.use('/showallpage',routes_showAllPage);
 
 
 //listen port
