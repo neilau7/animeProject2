@@ -52,6 +52,16 @@
             margin: auto;
             
         }
+        .img-from{
+            transform: translate(0px, -50px);
+            padding-right:10px;
+            text-align:right;
+            margin-bottom:-48px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: bold;
+            font-family: 'Roboto', sans-serif;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 1); /* 水平偏移量2px，垂直偏移量2px，模糊度4px，阴影颜色为半透明黑色 */
+        }
         .img-title{
             color: aliceblue;
             text-align: center;
@@ -159,7 +169,7 @@
                 // run
                 updateDisplayData(segmentData(1));
                 showFooter(1);
-                changeCurrentFooterColor(1);
+                changeCurrentFooterColor(1,"blue");
                 
             }catch(err){
                 console.log(`fectch Err : \n ${err}`);
@@ -284,12 +294,16 @@
                 imgMaskEle.className = "img-mask";
                 const imgEle = document.createElement('img');
                 imgEle.src = (ele.imgUrl)? ele.imgUrl: 'https://st4.depositphotos.com/14953852/24787/v/450/depositphotos_247872612-stock-illustration-no-image-available-icon-vector.jpg';
+                const fromEle = document.createElement('p');
+                fromEle.className = "img-from";
+                fromEle.textContent = ele.from;
                 const titleEle = document.createElement('p');
                 titleEle.textContent = ele.title;
                 titleEle.className = "img-title";
 
                 imgMaskEle.appendChild(imgEle); //like this : <article class="img-container"><a href="#"><div class="img-mask"><img src="imgUrl"></div><p class="img-title">Name</p></a></article>
                 urlEle.appendChild(imgMaskEle);
+                urlEle.appendChild(fromEle);
                 urlEle.appendChild(titleEle);
                 articleEle.appendChild(urlEle);
                 resultEle.appendChild(articleEle);
