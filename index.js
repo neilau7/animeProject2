@@ -21,6 +21,7 @@ app.use('/public', express.static(process.cwd() + '/public'));
 /////// api ////////
 //const url = 'https://anime1.me/?s=p'; //test
 const youtubeApi = process.env.youtubeApi;
+const googleApi = process.env.googleApi;
 //const aniOnePlayListId = "UU45ONEZZfMDZCnEhgYmVu";
 const aniOneChannelId = "UC45ONEZZfMDZCnEhgYmVu-A";
 const museChannelId = "UCgdwtyqBunlRb-i-7PnCssQ";
@@ -37,7 +38,10 @@ const animeSchema = {
     url:{type:String, require:true}, //playlist Url
     from:{type:String, require:true},
     count:{type:[Date],require:true},
-    date:{type:Date,require:true}
+    date:{type:Date,require:true},
+    click:{type:Number}, //全部
+    clickWeek:{type:Number}, // 本週
+    clickMonth:{type:Number} // 本月
 };
 
 //----<Create model (table)>----
@@ -102,7 +106,7 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
             //console.log(typeof(titleRes)); 
             // 执行搜索请求
             customsearch.cse.list({
-                auth: youtubeApi,
+                auth: googleApi,
                 cx: cseId,
                 q: encodeURIComponent(title),
                 search_type: 'image' // 指定搜索类型为图片
@@ -133,6 +137,25 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
         });
     })
 }
+async function getImageUrl(title){
+    try{
+        const response = await customsearch.cse.list({
+            auth: googleApi,
+            cx: cseId,
+            q: title,
+            search_type: 'image' // 指定搜索类型为图片
+        });
+
+        const imgUrlNew = response.data.items[0].link; 
+
+        return imgUrlNew;
+    }catch(err){
+        console.log(`Err getImageUrl : \n ${err}`);
+        return '';
+    }
+    
+    
+};
 
 function saveToDatabaseYoutube(filePath , keyword, maxNum, page){ 
     processHtmlYoutube(filePath, keyword, maxNum, page)
@@ -240,22 +263,7 @@ async function updateToDatabase(newData){     //if oldData doesn't exist, we add
     return;
 }
 
-async function updateCount(playlistUrl){
-    const urlTarget = await animeTable.findOne({"url":playlistUrl});
-    console.log(`urlTarget : ${urlTarget}`);
-    if (!urlTarget){
-        try{
-            console.log('Save Data Start');
-            const saveData = new animeTable(ele);
-            saveData.save();
-        }catch(err){
-            console.log(`save data err : \n ${err}`);
-        }
-    }else{
-        console.log(`Data exists ${urlTarget}`);
-    }
 
-};
 
 /////////fetch playlists about youtube for saving to disk /////////
 const getPlaylistsSingle = (url, filePath, from) => { //update and save playlists, and then submit nextPageToken for one time
@@ -425,6 +433,131 @@ function getPlaylistsAnime1(){
         })
     })
 }
+//////////////////////////////////////////////////////////////////
+
+// Click Behavior
+async function BuildKeyAndData(url,key,value){ //找到key 取代成value。 //修改項目，非新增一筆資料
+    try{
+        const params = {"url":url};
+        const oldData = await animeTable.findOneAndUpdate(
+            params, //query condition
+            { $set : { [key] : value} } //[key] 讓他解讀成變數
+        );
+        console.log(` BuildKeyAndData finished : { ${key} : ${value}}`);
+        return;
+    }catch(err){
+        console.log(`Error for updateData(BuildKeyAndData) \n :${err}`);
+    }
+
+};
+async function updateClickWeekNum(url){
+    try {
+        // weekClick
+        const today = new Date();
+        const startOfWeek = new Date(today.getFullYear(), today.getMonth() , today.getDate() - today.getDay());
+        const endOfWeek = new Date(today.getFullYear(), today.getMonth() , today.getDate() + (6 - today.getDay()));
+      
+        const weeklyData = await animeTable.aggregate([
+          {
+            $match: {
+                "url":url,
+              "count": {
+                $gte: startOfWeek,
+                $lte: endOfWeek
+              }
+            }
+          },
+          {
+            $project: { //控制輸出
+              "count": 1 // 1: 表示保留"count"的輸出，0: 表示排除
+            }
+          }
+        ]).exec();
+
+        console.log("Weekly Data:", weeklyData);
+        const resultNum = (weeklyData.length !== 0)? weeklyData[0].count.length : 0;
+        BuildKeyAndData(url,'clickWeek',resultNum);
+        return resultNum;
+
+      } catch (err) {
+        console.log(`Err update clickWeek : \n ${err}`);
+      }
+      
+
+
+};
+async function updateClickMonthNum(url){
+    try {
+        // weekClick
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+        // monthClick
+        const monthlyData = await animeTable.aggregate([
+          {
+            $match: {
+                "url":url,
+              "count": {
+                $gte: startOfMonth,
+                $lte: endOfMonth
+              }
+            }
+          },
+          {
+            $project: {
+              "count": 1
+            }
+          }
+        ]).exec();
+      
+        console.log("Monthly Data:", monthlyData);
+        const resultNum = (monthlyData.length !== 0)? monthlyData[0].count.length : 0;
+        BuildKeyAndData(url,'clickMonth',resultNum);
+        return  resultNum;
+
+      } catch (err) {
+        console.log(`Err clickMonth : \n ${err}`);
+      }
+      
+};
+
+async function updateClickNum(url){
+    try{
+        console.log(`updateClickNum start`);
+        const results = await animeTable.find({url:url});
+        const clickNum = (results.length !== 0)? results[0].count.length : 0;
+        BuildKeyAndData(url,'click',clickNum);
+        return clickNum;
+    }catch(err){
+        console.log(`Err updateClickKey ${err}`);
+        
+    }
+    
+}
+
+async function updateClickKey(url){ //update single specified url
+ updateClickWeekNum(url);
+ updateClickMonthNum(url);
+ updateClickNum(url);
+};
+
+async function updateAllClickKey(){
+    try{
+        const results = await animeTable.find({})
+        Array.from(results).forEach(async (ele)=>{
+
+            await updateClickKey(ele.url);
+            console.log(`updateClickKey finished : ${ele.url}`);
+        })
+    }
+    catch(err){
+        console.log(`Err updateClickKey : \n ${err}`);
+
+    }
+    
+}
+////////////////////////////////////////
 
 
 // << simple func >>
@@ -464,11 +597,14 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     //await getPlaylists(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${aniOneChannelId}&key=${youtubeApi}`,'playlist_aniOne.json','aniOne');
     //await getPlaylists(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${museChannelId}&key=${youtubeApi}`,'playlist_muse.json','Muse');
     // upload to database
-    //saveToDatabaseYoutube('playlist_aniOne.json','',0,1);
+    //saveToDatabaseYoutube('playlist_aniOne.json','',0,1); //upload 部分
     //saveToDatabaseYoutube('playlist_muse.json','',0,1);    
-    //saveAllToDatabaseYoutube('playlist_aniOne.json');
+    //saveAllToDatabaseYoutube('playlist_aniOne.json');     //upload 全部
     //saveAllToDatabaseYoutube('playlist_muse.json');
+
     //getPlaylistsAnime1();
+    //updateAllClickKey();
+    
 
     //processHtmlAnime1('https://anime1.me/?s=%E7%95%B0%E4%BF%AE%E7%BE%85');
 
@@ -503,11 +639,12 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
     
         try{
-            
-            const results = await animeTable.find()
-                .sort({ count: -1 }) // 按照降序排序
+            const results = await animeTable.find({})
+                .sort({click:-1})
                 .skip(skip)
-                .limit(num); // 限制结果数量
+                .limit(num);
+            
+            
             if (results.length === 0){
                 const allResults = await animeTable.find().limit(num);
                 res.json(allResults);
@@ -539,6 +676,56 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
           });
           
       });
+
+      app.get('/api/week',async (req,res)=>{
+        console.log(` week router`);
+        const num = (req.query.num)? parseInt(req.query.num) : 0;
+        const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
+    
+        try{
+            
+            const results = await animeTable.find()
+                .sort({ clickWeek: -1 }) // 按照降序排序
+                .skip(skip)
+                .limit(num); // 限制结果数量
+            if (results.length === 0){
+                const allResults = await animeTable.find().limit(num);
+                res.json(allResults);
+                
+            }
+            res.json(results);
+        }catch(err){
+            console.log(`week router err : \n ${err}`);
+            res.json({});
+    
+        }
+        
+    });
+
+    app.get('/api/month',async (req,res)=>{
+        console.log(` month router`);
+        const num = (req.query.num)? parseInt(req.query.num) : 0;
+        const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
+    
+        try{
+            
+            const results = await animeTable.find()
+                .sort({ clickMonth: -1 }) // 按照降序排序
+                .skip(skip)
+                .limit(num); // 限制结果数量
+            if (results.length === 0){
+                const allResults = await animeTable.find().limit(num);
+                res.json(allResults);
+                
+            }
+            res.json(results);
+        }catch(err){
+            console.log(`week router err : \n ${err}`);
+            res.json({});
+    
+        }
+        
+    });
     ////////////
     app.post('/api/count',async (req,res)=>{
         console.log(`count start`);
@@ -576,7 +763,6 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
 
                 }
                 
-
                 //res.send('Error about finding url for counting');
         
             }
@@ -585,6 +771,31 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
 
 
     });
+    app.post('/api/imgUrlSearch',async (req,res)=>{
+        try{
+            const title = req.body.title;
+            const imgUrl = req.body.imgUrl;
+            const url = req.body.url;
+            console.log(`search image accept Data : \n`);
+            console.log(`title ${title}`);
+            console.log(`imgUrl ${imgUrl}`);
+            console.log(`url ${url}`);
+
+            if (!imgUrl){
+                const imgUrlnew = await getImageUrl(title);    
+                BuildKeyAndData(url,'imgUrl',imgUrlnew);
+            }else{
+                res.send(`${imgUrl} is not NULL. Don't need to find an image`);
+            }
+            
+        }catch(err){
+            console.log(`Err anime1UrlSearch router : \n ${err}`);
+            res.send(`I can't look for image now`);
+        }
+        
+
+    })
+
 
 }).catch((err) => {
     console.log(`Connect Mongoose fail`);

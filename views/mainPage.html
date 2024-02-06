@@ -37,13 +37,13 @@
 
          
         .img-container{
-            height: 300px;
+            height: 270px;
             width: 267px;
             display: inline-block;
             
             text-align: center;
             
-            margin:5px;
+            margin:0px 5px;
             overflow: hidden;
         }
 
@@ -75,6 +75,7 @@
         }
         a{
             text-decoration: none;
+            color: white;
         }
         h3{
             margin-top: -10px;
@@ -110,9 +111,11 @@
     <div id="top-bar">
 
         <ul>
-            <li id="top-bar-title" class="top-bar-item inline">瘋動畫</li>
-            <li class="top-bar-item inline">首頁</li>
-            <li class="top-bar-item inline">分業</li>
+            <li id="top-bar-title" class="top-bar-item inline"> <a href="/">瘋動畫</a></li>
+            <li class="top-bar-item inline"><a href="https://www.youtube.com/@AniOneAnime" target="_blank">Ani-One</a></li>
+            <li class="top-bar-item inline"><a href="https://www.youtube.com/@MuseTW" target="_blank">Muse</a></li>
+            <li class="top-bar-item inline"><a href="https://anime1.me/" target="_blank">Anime1</a></li>
+
         </ul>
     </div>
     <div id="menu">
@@ -139,29 +142,52 @@
             </div>
             
         </section>
+        <section>
+            <h3>本週最佳</h3>
+            <div id="week" class="img-area">
+                
+                
+            </div>
+        </section>
+        <section>
+            <h3>本月最佳</h3>
+            <div id="month" class="img-area">
+                
+                
+            </div>
+        </section>
     </div>
     <script>
 
         const hotEle = document.getElementById('hot');
         const newEle = document.getElementById('new');
         const randomEle = document.getElementById('random');
+        const weekEle = document.getElementById('week');
+        const monthEle = document.getElementById('month');
 
         generateArticleChild(hotEle,'hot',30);
         generateArticleChild(newEle,'new',30);
         generateArticleChild(randomEle,'random',30);
+        generateArticleChild(weekEle,'week',30);
+        generateArticleChild(monthEle,'month',30);
 
+        // main func
         async function generateArticleChild(parentEle,apiType,num){
             
             const response = await fetch(`/api/${apiType}?num=${num}`);
             const data = await response.json();
 
-            Array.from(data).forEach((ele) => {
+            Array.from(data).forEach(async (ele) => {
                 console.log(ele);
                 const articleEle = document.createElement('article');
                 articleEle.className = "img-container";
                 const urlEle = document.createElement('a');
                 urlEle.href = ele.url;
                 urlEle.target = "_blank";
+                urlEle['data-click'] = false; //是否被點擊過
+                urlEle['data-img'] = (ele.imgUrl)? ele.imgUrl: '';   //imgUrl 
+                urlEle['data-title'] = ele.title;
+                counter(urlEle);
                 const imgMaskEle = document.createElement('div');
                 imgMaskEle.className = "img-mask";
                 const imgEle = document.createElement('img');
@@ -174,6 +200,59 @@
                 urlEle.appendChild(titleEle);
                 articleEle.appendChild(urlEle);
                 parentEle.appendChild(articleEle);
+            });
+        };
+        
+        
+        async function counter(element){ //Add Listener to link element
+            element.addEventListener('click',async ()=>{
+                
+                if(element['data-click']){
+                    return;
+                }else{
+                    try{
+                        console.log(`click url is ${element.href}`);     
+                        element['data-click'] = true;
+                        const params = new URLSearchParams({ //application/x-www-form-urlencoded 需要這樣才不會出錯
+                            'url' :  element.href ,
+                            'clickDate' : new Date()
+                        });   
+                        const response = await fetch('/api/count',{
+                            method:'POST',
+                            headers:{
+                                Accept:'application/json',
+                                'Content-Type' : 'application/x-www-form-urlencoded'
+                            },
+                            body:params
+                        });
+                        // Search image through google api
+                        try{
+                            if (!element['data-img']){
+                                const params = new URLSearchParams({ //application/x-www-form-urlencoded 需要這樣才不會出錯
+                                    'url' :  element.href ,
+                                    'title' : element['data-title'],
+                                    'imgUrl' : element['data-img']
+                                });   
+                                const response = await fetch('/api/imgUrlSearch',{
+                                    method:'POST',
+                                    headers:{
+                                        Accept:'application/json',
+                                        'Content-Type' : 'application/x-www-form-urlencoded'
+                                    },
+                                    body:params
+                                });
+                            }
+                        }catch(err){
+                            console.log(`Error Search image through google api \n : ${err}`);
+
+                        }
+
+                        
+                    }catch(err){
+                        console.log(`count Err \n : ${err}`);
+                    }
+                    
+                }
             });
         };
 
