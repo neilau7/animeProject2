@@ -111,6 +111,32 @@
             height: 20px;
             text-align: center;
         }
+
+        #search-icon{
+            max-height: 100%;
+            max-width: 100%;
+            margin-right: 5px;
+            
+        }
+        #search-block{
+            height: 30px;
+            margin: 0px 10px;
+            float:right;
+            margin-right: 25px;
+
+        }
+
+        #search-label{
+            max-height: 100%;
+            height: 100%;
+        }
+        #search-input{
+            max-height: 100%;
+            vertical-align: top;
+            height: 80%;
+            color: aliceblue;
+            background-color: rgba(70, 70, 70,0.9);
+        }
     </style>
 </head>
 
@@ -122,6 +148,7 @@
             <li class="top-bar-item inline"><a href="https://www.youtube.com/@AniOneAnime" target="_blank">Ani-One</a></li>
             <li class="top-bar-item inline"><a href="https://www.youtube.com/@MuseTW" target="_blank">Muse</a></li>
             <li class="top-bar-item inline"><a href="https://anime1.me/" target="_blank">Anime1</a></li>
+            <li class="inline" id="search-block"><label id="search-label" class="inline" for="search-input"><a href="#" id="search-link"><img class="inline" id="search-icon" src="/search/public/search.svg"></a><input class="inline" id="search-input" type="text"></label></li>
 
         </ul>
     </div>
@@ -139,7 +166,7 @@
     </div>
 
         <script>
-
+        createSearchLink();
         window.addEventListener('load',async ()=> {
             try{
                 // web params
@@ -362,7 +389,17 @@
                 }
             });
         };
+        function createSearchLink(){
 
+            const searchInputEle = document.getElementById('search-input');
+            const searchLinkEle = document.getElementById('search-link');
+            searchLinkEle.addEventListener('click',()=>{
+                
+                const keyword = encodeURIComponent( searchInputEle.value);
+                console.log(`Search ${searchInputEle.value}`);
+                window.location.href = `/search/searchpage/${keyword}`;
+            });
+        };
 
         </script>
 

@@ -808,7 +808,9 @@ module.exports = {
   };
 //load another js
 const routes_showAllPage = require('./showallpage/index2');
+const routes_search = require('./search/search1');
 app.use('/showallpage',routes_showAllPage);
+app.use('/search',routes_search);
 
 
 //listen port
