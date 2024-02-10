@@ -137,7 +137,19 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
         });
     })
 }
+
+
 async function getImageUrl(title){
+    async function isImageURL(url) {
+        try {
+            const response = await fetch(url, { method: "HEAD" });
+            const contentType = response.headers.get("Content-Type");
+            return contentType.startsWith("image/");
+        } catch (error) {
+            console.error("Error checking image URL:", error);
+            return false;
+        }
+    }
     try{
         const response = await customsearch.cse.list({
             auth: googleApi,
@@ -146,8 +158,18 @@ async function getImageUrl(title){
             search_type: 'image' // 指定搜索类型为图片
         });
 
-        const imgUrlNew = response.data.items[0].link; 
+        var indexImg = 0;
+        var imgUrlNew = response.data.items[ indexImg ].link; 
+        var loop = 1;
+        const maxLoop = 5;
+        while( !await isImageURL(imgUrlNew) && loop <= maxLoop){
+            indexImg = indexImg + 1;
+            imgUrlNew = response.data.items[indexImg].link; 
 
+            loop = loop + 1;
+        }
+
+        console.log(`getImageUrl : ${imgUrlNew}`);
         return imgUrlNew;
     }catch(err){
         console.log(`Err getImageUrl : \n ${err}`);
@@ -156,6 +178,7 @@ async function getImageUrl(title){
     
     
 };
+
 
 function saveToDatabaseYoutube(filePath , keyword, maxNum, page){ 
     processHtmlYoutube(filePath, keyword, maxNum, page)
@@ -729,64 +752,73 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     ////////////
     app.post('/api/count',async (req,res)=>{
         console.log(`count start`);
-        //console.log(`req : ${JSON.parse(req)}`);
-        const url = req.body.url;
-        const clickDate = (req.body.clickDate)? new Date(req.body.clickDate) : new Date();
-        console.log(`url : ${url}`);
-        if (url){
-
-            try{
-                
-                const results = await animeTable.findOneAndUpdate(
-                    {url:url},
-                    {$push : {count : clickDate}} // means the date which is clicked
-                );
-                console.log(`Count is ${results.count}`);
-                res.send(`Count is ${results.count}`);
-
-                
-                
-            }catch(err){
-                console.log(`count router err : \n ${err}`);
-                //try add new count = 1;
-                try{
-                    const results = await animeTable.findOneAndUpdate(
-                        {url:url},
-                        {$set : {count:[clickDate]}} // means count = count + 1
-                    );
-                    console.log(`Build Count, Count is ${results.count}`);
-                    res.send(`Build Count, Count is ${results.count}`);
-                }
-                catch(err){
-                    console.log(`Add count key fail :\n ${err}`);
-                    res.send(`Add count key fail`);
-
-                }
-                
-                //res.send('Error about finding url for counting');
         
-            }
-            
+        const clickData = req.body;
+        
+        try{
+            Array.from( Object.keys(clickData)).forEach(async (url) =>{
+                if (url){
+                    try{
+                    
+                        const results = await animeTable.findOneAndUpdate(
+                            {url:url},
+                            {$push : {count : Date(clickData[url]) }} // add clicked-date to mongoose
+                        );
+                        console.log(`Count date is finished`);
+    
+                        
+                    }catch(err){
+                        console.log(`count router err : \n ${err}`);
+                        //try add new count = 1;
+                        try{
+                            const results = await animeTable.findOneAndUpdate(
+                                {url:url},
+                                {$set : {count: Date(clickData[url])}} 
+                            );
+                            console.log(`Build Count, Count is ${results.count}`);
+                            
+                        }
+                        catch(err){
+                            console.log(`Add count key fail :\n ${err}`);
+                        }
+                
+                    }
+                }else{
+                    console.log(`No url Count Api`);
+                }
+                console.log("No-img router finished");
+                res.send("No-img router finished");
+            });
+    
+    
         }
-
+        catch(err){
+            console.log(`sever Err of count : \n ${err}`);
+        }
+        
+        
+        
 
     });
+
+
     app.post('/api/imgUrlSearch',async (req,res)=>{
         try{
-            const title = req.body.title;
-            const imgUrl = req.body.imgUrl;
-            const url = req.body.url;
-            console.log(`search image accept Data : \n`);
-            console.log(`title ${title}`);
-            console.log(`imgUrl ${imgUrl}`);
-            console.log(`url ${url}`);
+            console.log(`imgUrlSearch Start`);
 
-            if (!imgUrl){
+            const data = req.body;
+
+            Array.from(Object.keys(data)).forEach(async (url) => {
+                
+                const title = data[url];
+                console.log(`search image accept Data : \n`);
+                console.log(`title ${title}`);
+                console.log(`url ${url}`);
                 const imgUrlnew = await getImageUrl(title);    
-                BuildKeyAndData(url,'imgUrl',imgUrlnew);
-            }else{
-                res.send(`${imgUrl} is not NULL. Don't need to find an image`);
-            }
+                await BuildKeyAndData(url,'imgUrl',imgUrlnew);
+                console.log(`imgUrl Search finished : ${imgUrlnew}`);
+            })
+
             
         }catch(err){
             console.log(`Err anime1UrlSearch router : \n ${err}`);
@@ -801,6 +833,40 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     console.log(`Connect Mongoose fail`);
 })
 
+app.get('/update',(req,res)=>{
+    console.log(`update router`);
+    mongoose.connect(process.env.mongooseUrl).then(async ()=>{
+        console.log('database connected.');
+
+        try{
+            // Save youtube playlists to disk
+            console.log(`download youtube playlists start`);
+            await getPlaylists(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${aniOneChannelId}&key=${youtubeApi}`,'playlist_aniOne.json','aniOne');
+            await getPlaylists(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${museChannelId}&key=${youtubeApi}`,'playlist_muse.json','Muse');
+            // upload to database
+            console.log(`Upload youtube playlists start`);
+            //saveToDatabaseYoutube('playlist_aniOne.json','',0,1); //upload 部分
+            //saveToDatabaseYoutube('playlist_muse.json','',0,1);    
+
+            saveAllToDatabaseYoutube('playlist_aniOne.json');     //upload 全部
+            saveAllToDatabaseYoutube('playlist_muse.json');
+
+            //anime1
+            console.log(`fetch anime1 playlists start`);
+            getPlaylistsAnime1();
+
+            //updateAllClickKey();
+
+            res.send(`update accepted`);
+        }catch(err){
+            console.log(`Err update databse : \n ${err}`);
+            res.send(`Err update databse : \n ${err}`);
+        }
+        
+
+    });
+
+});
 
 //export variable to another js
 module.exports = {

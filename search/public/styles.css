@@ -5,7 +5,8 @@ body{
 }
 #menu{
     margin: auto;
-    width: 1460px;
+    width: 100%;
+    max-width: 1460px;
     padding-top: 50px;
     text-align: center;
 }

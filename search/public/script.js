@@ -1,4 +1,10 @@
 createSearchLink();
+//throttle for addListener
+localStorage.removeItem('no-img'); //clear history
+localStorage.removeItem('click');
+fectchNoImg_throttle(1000);
+click_throttle(1000);
+whenCloseWindow();
 window.addEventListener('load',async ()=> {
     try{
         // web params
@@ -145,7 +151,7 @@ function updateDisplayData(data){
         urlEle['data-click'] = false; //是否被點擊過
         urlEle['data-img'] = (ele.imgUrl)? ele.imgUrl: '';   //imgUrl 
         urlEle['data-title'] = ele.title;
-        counter(urlEle);
+        
         const imgMaskEle = document.createElement('div');
         imgMaskEle.className = "img-mask";
         const imgEle = document.createElement('img');
@@ -167,57 +173,6 @@ function updateDisplayData(data){
 
 };
 
-async function counter(element){ //Add Listener to link element
-    element.addEventListener('click',async ()=>{
-        
-        if(element['data-click']){
-            return;
-        }else{
-            try{
-                console.log(`click url is ${element.href}`);     
-                element['data-click'] = true;
-                const params = new URLSearchParams({ //application/x-www-form-urlencoded 需要這樣才不會出錯
-                    'url' :  element.href ,
-                    'clickDate' : new Date()
-                });   
-                const response = await fetch('/api/count',{
-                    method:'POST',
-                    headers:{
-                        Accept:'application/json',
-                        'Content-Type' : 'application/x-www-form-urlencoded'
-                    },
-                    body:params
-                });
-                // Search image through google api
-                try{
-                    if (!element['data-img']){
-                        const params = new URLSearchParams({ //application/x-www-form-urlencoded 需要這樣才不會出錯
-                            'url' :  element.href ,
-                            'title' : element['data-title'],
-                            'imgUrl' : element['data-img']
-                        });   
-                        const response = await fetch('/api/imgUrlSearch',{
-                            method:'POST',
-                            headers:{
-                                Accept:'application/json',
-                                'Content-Type' : 'application/x-www-form-urlencoded'
-                            },
-                            body:params
-                        });
-                    }
-                }catch(err){
-                    console.log(`Error Search image through google api \n : ${err}`);
-
-                }
-
-                
-            }catch(err){
-                console.log(`count Err \n : ${err}`);
-            }
-            
-        }
-    });
-};
 
 function createSearchLink(){
 
@@ -230,5 +185,167 @@ function createSearchLink(){
         window.location.href = `/search/searchpage/${keyword}`;
     });
 };
+
+
+function fectchNoImg_throttle(delay){ 
+    const menuEle = document.getElementById('menu');
+    const fetchImg = throttle((element)=>{
+        // Search image through google api
+        try{
+            
+            if (element.hasAttribute('href') && !element['data-click'] && !element['data-img']  ){
+                console.log(`fetch No img : ${element.href}`);
+                const url = element.href;
+                const title = element['data-title'];
+
+                //const imgUrl = element['data-img'];
+
+                const newData = {
+                    [url]: title
+                };
+
+                //get data from disk
+                const clickData = JSON.parse( localStorage.getItem('no-img'));
+                console.log(`no-img data is ${JSON.stringify( clickData )}`);
+                if (!clickData){
+                    localStorage.setItem('no-img', JSON.stringify(newData));
+                }else{
+                    clickData[url] = newData[url];
+                    localStorage.setItem('no-img', JSON.stringify(clickData));
+                }
+
+                
+            }
+        }catch(err){
+            console.log(`Error Search image through google api \n : ${err}`);
+
+        }
+
+
+    }, delay );
+    menuEle.addEventListener('click', (event)=>{
+        
+        const clickedEle = event.target;
+        const linkEle = clickedEle.parentNode.parentNode;
+        //console.log(`clicked menu element is ${clickedEle.parentNode.parentNode['data-img']}`);  
+        fetchImg(linkEle); 
+    });
+
+}
+
+function click_throttle(delay){ 
+    const menuEle = document.getElementById('menu');
+    const fetchImg = throttle((element)=>{
+        // Search image through google api  
+        try{
+            if (element.hasAttribute('href') && !element['data-click'] ){
+                console.log(`click url is ${element.href}`);     
+                element['data-click'] = true;
+                const nowDate = new Date();
+                const nowUrl = element.href;
+                
+                const newData = {       // In localStorage, {'click':  {'http1':[date1,date2], 'http2': [date1,date2] } }
+                    [nowUrl] : nowDate,
+                };
+
+                //get data from disk
+                const clickData = JSON.parse( localStorage.getItem('click'));
+                console.log(`click data is ${JSON.stringify( clickData )}`);
+                 // save data
+                if (!clickData ){
+                    // save single data
+                    localStorage.setItem('click',JSON.stringify( newData ));
+                }else {
+
+                    if (clickData.hasOwnProperty(nowUrl)){
+                        clickData[nowUrl] = [...clickData[nowUrl], nowDate];
+                        localStorage.setItem('click',JSON.stringify( clickData ));
+                    }else{
+                        clickData[nowUrl] = [ nowDate];
+                        localStorage.setItem('click',JSON.stringify( clickData ));
+                    }
+                
+                }
+                
+                
+                /*
+                const params = new URLSearchParams({ //application/x-www-form-urlencoded 需要這樣才不會出錯
+                    'url' :  element.href ,
+                    'clickDate' : new Date()
+                });  
+                const response = fetch('/api/count',{
+                    method:'POST',
+                    headers:{
+                        Accept:'application/json',
+                        'Content-Type' : 'application/x-www-form-urlencoded'
+                    },
+                    body:params
+                });*/
+            }
+            
+        }catch(err){
+            console.log(`count Err \n : ${err}`);
+        }
+
+
+    }, delay );
+    menuEle.addEventListener('click', (event)=>{
+        
+        const clickedEle = event.target;
+        const linkEle = clickedEle.parentNode.parentNode;
+        //console.log(`clicked menu element is ${clickedEle.parentNode.parentNode['data-img']}`);  
+        fetchImg(linkEle); 
+    });
+
+}
+
+function whenCloseWindow(){
+    window.addEventListener('beforeunload', ()=>{
+        const clickData = JSON.parse( localStorage.getItem('click') );
+        const noImgData = JSON.parse( localStorage.getItem('no-img') );
+        
+        // fetch click
+        if (clickData){
+            var params = new URLSearchParams(clickData);               //application/x-www-form-urlencoded 需要這樣才不會出錯  
+            var response = fetch('/api/count',{
+                method:'POST',
+                headers:{
+                    Accept:'application/json',
+                    'Content-Type' : 'application/x-www-form-urlencoded'
+                },
+                body:params
+            });
+        }
+        
+
+        //fetch No image
+        if (noImgData){
+            params = new URLSearchParams(noImgData);               //application/x-www-form-urlencoded 需要這樣才不會出錯  
+            response = fetch('/api/imgUrlSearch',{
+                method:'POST',
+                headers:{
+                    Accept:'application/json',
+                    'Content-Type' : 'application/x-www-form-urlencoded'
+                },
+                body:params
+            });
+        }
+        
+
+
+    })
+}
+function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+      const context = this;
+      if (!inThrottle) {
+        func.apply(context, args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
+  }
+
 
 
