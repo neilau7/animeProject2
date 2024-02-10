@@ -786,11 +786,11 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
                 }else{
                     console.log(`No url Count Api`);
                 }
-                console.log("No-img router finished");
-                res.send("No-img router finished");
+                
+                
             });
-    
-    
+            console.log("count router finished");
+            res.send("count router finished");
         }
         catch(err){
             console.log(`sever Err of count : \n ${err}`);
@@ -819,7 +819,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
                 console.log(`imgUrl Search finished : ${imgUrlnew}`);
             })
 
-            
+            res.send('imgUrl finished') ;
         }catch(err){
             console.log(`Err anime1UrlSearch router : \n ${err}`);
             res.send(`I can't look for image now`);
