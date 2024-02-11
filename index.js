@@ -138,18 +138,42 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
     })
 }
 
+async function updateAllNoImg(){
+    try{
+        const oldData = await animeTable.find({});
+        const newDataPromises = Array.from(oldData).map(async (ele) => {
+            if (!ele.imgUrl || !await isImageURL(ele.url)){
+                const imgUrl = await getImageUrl(ele.title);
+                ele.imgUrl = imgUrl;
+                
+            }
+            return ele;
+        });
+        const newData = await Promise.all(newDataPromises);
+        // 将处理后的数据保存回数据库
+        const result = await animeTable.insertMany(newData);
+        console.log('updateAllNoImg Data saved successfully:', result);
+    }catch(err){
+        console.log('Error updateAllNoImg:', err);
 
-async function getImageUrl(title){
-    async function isImageURL(url) {
-        try {
-            const response = await fetch(url, { method: "HEAD" });
-            const contentType = response.headers.get("Content-Type");
-            return contentType.startsWith("image/");
-        } catch (error) {
-            console.error("Error checking image URL:", error);
-            return false;
-        }
     }
+    
+}
+
+// simple func
+async function isImageURL(url) {
+    try {
+        const response = await fetch(url, { method: "HEAD" });
+        const contentType = response.headers.get("Content-Type");
+        return contentType.startsWith("image/");
+    } catch (error) {
+        console.error("Error checking image URL:", error);
+        return false;
+    }
+}
+async function getImageUrl(title){
+
+    // start
     try{
         const response = await customsearch.cse.list({
             auth: googleApi,
@@ -179,7 +203,35 @@ async function getImageUrl(title){
     
 };
 
+async function checkUrlExist(url){
+    try{
+        const oldData = await animeTable.find({url:url});
+        if (oldData && oldData.length >= 1){
+            return true;
+        }else{
+            return false;
+        }
+    }catch(err){
+        console.log(` Err checkUrlExist ${err}`);
+        return false
+    }
+}
 
+async function checkTitleExist(title){
+    try{
+        const oldData = await animeTable.find({title:title});
+        if (oldData && oldData.length >= 1){
+            return true;
+        }else{
+            return false;
+        }
+    }catch(err){
+        console.log(` Err checkUrlExist ${err}`);
+        return false
+    }
+}
+
+// youtube update func
 function saveToDatabaseYoutube(filePath , keyword, maxNum, page){ 
     processHtmlYoutube(filePath, keyword, maxNum, page)
     .then(async (data) =>{
@@ -216,6 +268,7 @@ function saveToDatabaseYoutube(filePath , keyword, maxNum, page){
     })
 
 }
+
 async function saveAllToDatabaseYoutube(filePath){
     const data = await readData(filePath);
 
@@ -329,16 +382,18 @@ const getPlaylistsSingle = (url, filePath, from) => { //update and save playlist
             }
             
         }
+        console.log(`getPlaylistsSingle URl is :\n ${url}`);
         
+        // Start
         ///////////////////////get data and save//////////////
         fetch(url)
         .then(response => response.json())
         .then(async (data)=>{
-            //console.log(data);
-            if (!data){
-                return;
+            console.log(`playList Data ${JSON.stringify( data )}`);
+            if (!data || !data.hasOwnProperty( 'items' )){
+                resolve({status:'No playLists exist'})
             }
-            console.log(`data = ${data}`);
+            
             const completeData = Array.from(data.items).map(element => {
                 const playlistId = element.id;
 
@@ -417,44 +472,63 @@ async function getPlaylists(url, filePath, from){ //For youtube
 
 }
 
-function getPlaylistsAnime1(){
-    const apiUrl = "https://d1zquzjgwo9yb.cloudfront.net/?_=1706859616074";
-    fetch(apiUrl)
-    .then(response => response.json())
-    .then(data => {
-        console.log(`anime1 api : \n `);
-        //const jsonData = JSON.parse(data);
-        
-        Array.from(data).forEach(async ele => {
-            const anime1Id = ele[0];
-            const title = ele[1];
-            var dateImgData = { //default
-                imgUrl:'',
-                date:null
-            };
+function getPlaylistsAnime1(){ // if title key of mongoose doesn't exist, update it;
+
+    return new Promise((resolve, reject) => {
+        const apiUrl = "https://d1zquzjgwo9yb.cloudfront.net/?_=1706859616074";
+        fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            console.log(`anime1 api : \n `);
+            //const jsonData = JSON.parse(data);
             
-            try{
-                dateImgData = await getDateImgAnime1(title);
-            }catch(err){
-                console.log(`getDateImgAnime1 Error :\n ${err}`);
+            Array.from(data).forEach(async ele => {
+                const anime1Id = ele[0];
+                const title = ele[1];
+                try{
+                    if (await checkTitleExist(title)){ // check exist
+                        return ;
+                    }
+                }catch(err){
+                    console.error(`Error checkTitleExist : \n ${err}`);
+                }
+                
+                var dateImgData = { //default
+                    imgUrl:'',
+                    date:null
+                };
+                
+                try{
+                    dateImgData = await getDateImgAnime1(title);
+                }catch(err){
+                    console.log(`getDateImgAnime1 Error :\n ${err}`);
 
-            }
-            
-            const resdata = {
-                title:title,
-                url:`https://anime1.me/?cat=` + anime1Id,
-                imgUrl:dateImgData.imgUrl,
-                date:dateImgData.date,
-                from:'anime1'
+                }
+                
+                const resdata = {
+                    title:title,
+                    url:`https://anime1.me/?cat=` + anime1Id,
+                    imgUrl:dateImgData.imgUrl,
+                    date:dateImgData.date,
+                    from:'anime1'
 
-            }
-            await updateToDatabase([resdata]);
-            console.log(`final anime1 data \n ${JSON.stringify(resdata)}`);
+                }
+                await updateToDatabase([resdata]);
+                console.log(`final anime1 data \n ${JSON.stringify(resdata)}`);
 
 
 
+            });
+            resolve({status:'finish'});
+
+
+        }).catch((err)=>{
+            console.error(`Error getPlaylistsAnime1 : \n ${err}`);
+            reject({status:"Error"});
         })
-    })
+
+    });
+    
 }
 //////////////////////////////////////////////////////////////////
 
@@ -616,19 +690,6 @@ function readData(filePath){                                     //read the data
 
 mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     console.log('database connected.')
-    // Save youtube playlists to disk
-    //await getPlaylists(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${aniOneChannelId}&key=${youtubeApi}`,'playlist_aniOne.json','aniOne');
-    //await getPlaylists(`https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${museChannelId}&key=${youtubeApi}`,'playlist_muse.json','Muse');
-    // upload to database
-    //saveToDatabaseYoutube('playlist_aniOne.json','',0,1); //upload 部分
-    //saveToDatabaseYoutube('playlist_muse.json','',0,1);    
-    //saveAllToDatabaseYoutube('playlist_aniOne.json');     //upload 全部
-    //saveAllToDatabaseYoutube('playlist_muse.json');
-
-    //getPlaylistsAnime1();
-    //updateAllClickKey();
-    
-
     //processHtmlAnime1('https://anime1.me/?s=%E7%95%B0%E4%BF%AE%E7%BE%85');
 
     /////////////
@@ -700,7 +761,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
           
       });
 
-      app.get('/api/week',async (req,res)=>{
+    app.get('/api/week',async (req,res)=>{
         console.log(` week router`);
         const num = (req.query.num)? parseInt(req.query.num) : 0;
         const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
@@ -749,7 +810,8 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         }
         
     });
-    ////////////
+    
+    //////////// backend record //////////
     app.post('/api/count',async (req,res)=>{
         console.log(`count start`);
         
@@ -801,7 +863,6 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
 
     });
 
-
     app.post('/api/imgUrlSearch',async (req,res)=>{
         try{
             console.log(`imgUrlSearch Start`);
@@ -827,12 +888,14 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         
 
     })
+    //
 
 
 }).catch((err) => {
     console.log(`Connect Mongoose fail`);
 })
 
+////////////// Update Router/////////////////////////////////////////////
 app.get('/update',(req,res)=>{
     console.log(`update router`);
     mongoose.connect(process.env.mongooseUrl).then(async ()=>{
@@ -853,9 +916,9 @@ app.get('/update',(req,res)=>{
 
             //anime1
             console.log(`fetch anime1 playlists start`);
-            getPlaylistsAnime1();
+            await getPlaylistsAnime1();
 
-            //updateAllClickKey();
+            updateAllClickKey();
 
             res.send(`update accepted`);
         }catch(err){
@@ -867,6 +930,23 @@ app.get('/update',(req,res)=>{
     });
 
 });
+
+app.get('/updateNoImg',async (req,res) => {
+    mongoose.connect(process.env.mongooseUrl).then(async ()=>{
+        console.log('database connected.');
+        try{
+            await updateAllNoImg();
+            res.send(`updateAllNoImg finished`);
+        }catch(err){
+            console.log(`Error updateAllNoImg : \n ${err}`);
+            res.send(`Error updateAllNoImg`);
+        }
+    });
+    
+    
+    
+
+})
 
 //export variable to another js
 module.exports = {
