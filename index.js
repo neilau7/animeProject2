@@ -471,7 +471,7 @@ async function getPlaylists(url, filePath, from){ //For youtube
     }
 
 }
-
+// fetch anime1
 function getPlaylistsAnime1(){ // if title key of mongoose doesn't exist, update it;
 
     return new Promise((resolve, reject) => {

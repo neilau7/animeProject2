@@ -3,7 +3,7 @@ createSearchLink();
 localStorage.removeItem('no-img'); //clear history
 localStorage.removeItem('click');
 fectchNoImg_throttle(1000);
-click_throttle(1000);
+recordThrottle(10000); // upload click and deal with Image Search
 whenCloseWindow();
 window.addEventListener('load',async ()=> {
     try{
@@ -335,6 +335,49 @@ function whenCloseWindow(){
 
     })
 }
+
+function recordThrottle(delay){
+    const recordRun = throttle(()=>{
+        
+        const clickData = JSON.parse( localStorage.getItem('click') );
+        const noImgData = JSON.parse( localStorage.getItem('no-img') );
+        
+        // fetch click
+        if (clickData){
+            var params = new URLSearchParams(clickData);               //application/x-www-form-urlencoded 需要這樣才不會出錯  
+            var response = fetch('/api/count',{
+                method:'POST',
+                headers:{
+                    Accept:'application/json',
+                    'Content-Type' : 'application/x-www-form-urlencoded'
+                },
+                body:params
+            });
+        }
+        
+
+        //fetch No image
+        if (noImgData){
+            params = new URLSearchParams(noImgData);               //application/x-www-form-urlencoded 需要這樣才不會出錯  
+            response = fetch('/api/imgUrlSearch',{
+                method:'POST',
+                headers:{
+                    Accept:'application/json',
+                    'Content-Type' : 'application/x-www-form-urlencoded'
+                },
+                body:params
+            });
+        }
+        localStorage.removeItem('no-img'); //clear history
+        localStorage.removeItem('click');
+    },delay); // ms
+
+    const menuEle = document.getElementById('menu');
+    menuEle.addEventListener('click', ()=>{
+        recordRun();
+    });
+}
+
 function throttle(func, limit) {
     let inThrottle;
     return function(...args) {

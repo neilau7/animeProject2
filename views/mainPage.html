@@ -216,11 +216,11 @@
         createSearchLink();
 
         //throttle for addListener
-        localStorage.removeItem('no-img'); //clear history
-        localStorage.removeItem('click');
+
         fectchNoImg_throttle(1000);
         click_throttle(1000);
-        whenCloseWindow();
+        //whenCloseWindow();
+        recordThrottle(10000); // upload click and deal with Image Search
 
         // main func
         async function generateArticleChild(parentEle,apiType,num){
@@ -373,20 +373,6 @@
                         
                         }
                         
-                        
-                        /*
-                        const params = new URLSearchParams({ //application/x-www-form-urlencoded 需要這樣才不會出錯
-                            'url' :  element.href ,
-                            'clickDate' : new Date()
-                        });  
-                        const response = fetch('/api/count',{
-                            method:'POST',
-                            headers:{
-                                Accept:'application/json',
-                                'Content-Type' : 'application/x-www-form-urlencoded'
-                            },
-                            body:params
-                        });*/
                     }
                     
                 }catch(err){
@@ -405,8 +391,9 @@
 
         }
 
-        function whenCloseWindow(){
-            window.addEventListener('beforeunload', ()=>{
+        function recordThrottle(delay){
+            const recordRun = throttle(()=>{
+                
                 const clickData = JSON.parse( localStorage.getItem('click') );
                 const noImgData = JSON.parse( localStorage.getItem('no-img') );
                 
@@ -436,10 +423,14 @@
                         body:params
                     });
                 }
-                
+                localStorage.removeItem('no-img'); //clear history
+                localStorage.removeItem('click');
+            },delay); // ms
 
-
-            })
+            const menuEle = document.getElementById('menu');
+            menuEle.addEventListener('click', ()=>{
+                recordRun();
+            });
         }
 
         function createSearchLink(){
