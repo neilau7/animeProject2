@@ -184,12 +184,10 @@ function updateDisplayData(data){
 
             
             
-            if ( currentNode.matches("img") ){
-                console.log("img triggers ");
-                window.open(element.href,'_blank'); // open new web;
-            }else if (currentNode.matches(".img-mask")){
+            
+            if (currentNode.matches(".star-img")){
                 console.log("star block triggers ");
-                toggleStar(currentNode);   
+                toggleStar(currentNode.parentNode.parentNode.parentNode);   
             }
             else{
                 console.log(`create new web`);
