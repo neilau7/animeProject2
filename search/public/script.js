@@ -1,10 +1,12 @@
+const starUrl = "/public/star-full.svg";
+const noStarUrl = "/public/star-black.svg";
+
 createSearchLink();
 //throttle for addListener
 localStorage.removeItem('no-img'); //clear history
 localStorage.removeItem('click');
 fectchNoImg_throttle(1000);
 recordThrottle(10000); // upload click and deal with Image Search
-whenCloseWindow();
 window.addEventListener('load',async ()=> {
     try{
         // web params
@@ -138,6 +140,66 @@ function changeCurrentFooterColor(page,color){
     });
 }
 function updateDisplayData(data){
+    function createStarElement(url){
+                
+        console.log(`<< createStarElement >>`);
+        const starBlockEle = document.createElement('div');
+        starBlockEle.className = "star-block";
+        const starBackGroundEle = document.createElement('div');
+        starBackGroundEle.className = "star-background";
+        const starImageEle = document.createElement('img');
+        starImageEle.className = "star-img";
+
+        const data = JSON.parse( localStorage.getItem('starRecord') ); // {'url':...,'title':...,'imgUrl':,...},{...}
+        
+        if (!data || data.length === 0){
+            console.log(`data is null`);
+            starImageEle.src = noStarUrl;
+
+            
+        }else {
+            console.log(`is star : \n ${JSON.stringify( data)}`);
+            const urls = Array.from( data ).map(ele => ele.url);
+            if (urls.includes(url)){
+                console.log("update star");
+                starImageEle.src = starUrl;
+            }else{
+                starImageEle.src = noStarUrl;
+            }
+        }
+
+        //starBlockEle.addEventListener('click', toggleStar);
+
+        starBackGroundEle.appendChild(starImageEle);
+        starBlockEle.appendChild(starBackGroundEle);
+
+        return starBlockEle;
+    };
+    
+    function urlListener(element){
+        element.addEventListener('click',(event)=>{
+            event.preventDefault();
+            const currentNode = event.target;
+            console.log(`url trigger is ${currentNode.outerHTML}`);
+
+            
+            
+            if ( currentNode.matches("img") ){
+                console.log("img triggers ");
+                window.open(element.href,'_blank'); // open new web;
+            }else if (currentNode.matches(".img-mask")){
+                console.log("star block triggers ");
+                toggleStar(currentNode);   
+            }
+            else{
+                console.log(`create new web`);
+                window.open(element.href,'_blank'); // open new web
+            }
+            
+        })
+        return element;
+    }
+
     //clear
     resultEle.innerHTML = '';
 
@@ -145,12 +207,16 @@ function updateDisplayData(data){
         console.log(ele);
         const articleEle = document.createElement('article');
         articleEle.className = "img-container";
-        const urlEle = document.createElement('a');
+        var urlEle = document.createElement('a');
         urlEle.href = ele.url;
         urlEle.target = "_blank";
         urlEle['data-click'] = false; //是否被點擊過
         urlEle['data-img'] = (ele.imgUrl)? ele.imgUrl: '';   //imgUrl 
         urlEle['data-title'] = ele.title;
+        urlEle['data-date'] = ele.date;
+        urlEle['data-from'] = ele.from;
+        urlEle = urlListener(urlEle);
+
         
         const imgMaskEle = document.createElement('div');
         imgMaskEle.className = "img-mask";
@@ -162,8 +228,10 @@ function updateDisplayData(data){
         const titleEle = document.createElement('p');
         titleEle.textContent = ele.title;
         titleEle.className = "img-title";
+        const starBlockEle = createStarElement(ele.url);
 
         imgMaskEle.appendChild(imgEle); //like this : <article class="img-container"><a href="#"><div class="img-mask"><img src="imgUrl"></div><p class="img-title">Name</p></a></article>
+        imgMaskEle.appendChild(starBlockEle);
         urlEle.appendChild(imgMaskEle);
         urlEle.appendChild(fromEle);
         urlEle.appendChild(titleEle);
@@ -185,6 +253,58 @@ function createSearchLink(){
         window.location.href = `/search/searchpage/${keyword}`;
     });
 };
+
+function toggleStar(element){
+            
+    //const completeNoStarUrl = "https://" + window.location.hostname + noStarUrl;
+    //const completeStarUrl = "https://" + window.location.hostname + starUrl;
+    
+    const imgMaskEle = element;
+    const aLinkEle = imgMaskEle.parentNode;
+
+    const newData = {
+        'url':aLinkEle.href,
+        'title':aLinkEle['data-title'],
+        'imgUrl':aLinkEle['data-img'],
+        'date':aLinkEle['data-date'],
+        'from':aLinkEle['data-from']
+    }
+
+    const currentStar = element.firstElementChild.nextElementSibling.firstElementChild.firstElementChild;
+    const currentStarUrlObj = new URL( currentStar.src, window.location.origin);
+    const currentStarUrl = currentStarUrlObj.pathname;
+
+    var data = (JSON.parse( localStorage.getItem("starRecord") ))? JSON.parse( localStorage.getItem("starRecord") ) : [];
+
+    console.log(`original data : \n ${data}`);
+    const dataUrls = Array.from(data).map(ele => ele.url);
+
+    console.log(`toggle star src : ${currentStar.src}`);
+    if (!currentStar.src){
+        return;
+    }
+    
+    if ( currentStarUrl === noStarUrl){
+        
+        if (dataUrls.length === 0 || !dataUrls.includes(newData.url)){
+            data = Array.from(data);
+            data.push(newData);
+        }
+        currentStar.src = starUrl;
+        console.log(`become star`);
+    }else{
+        console.log(`delete star`);
+        data = Array.from(data).filter(ele => ele.url !== newData.url);
+        
+        currentStar.src = noStarUrl;
+    }
+    console.log(`final star data : \n ${data}`);
+
+    localStorage.setItem("starRecord", JSON.stringify(data));
+    
+    
+}
+
 
 
 function fectchNoImg_throttle(delay){ 
@@ -299,42 +419,7 @@ function click_throttle(delay){
 
 }
 
-function whenCloseWindow(){
-    window.addEventListener('beforeunload', ()=>{
-        const clickData = JSON.parse( localStorage.getItem('click') );
-        const noImgData = JSON.parse( localStorage.getItem('no-img') );
-        
-        // fetch click
-        if (clickData){
-            var params = new URLSearchParams(clickData);               //application/x-www-form-urlencoded 需要這樣才不會出錯  
-            var response = fetch('/api/count',{
-                method:'POST',
-                headers:{
-                    Accept:'application/json',
-                    'Content-Type' : 'application/x-www-form-urlencoded'
-                },
-                body:params
-            });
-        }
-        
 
-        //fetch No image
-        if (noImgData){
-            params = new URLSearchParams(noImgData);               //application/x-www-form-urlencoded 需要這樣才不會出錯  
-            response = fetch('/api/imgUrlSearch',{
-                method:'POST',
-                headers:{
-                    Accept:'application/json',
-                    'Content-Type' : 'application/x-www-form-urlencoded'
-                },
-                body:params
-            });
-        }
-        
-
-
-    })
-}
 
 function recordThrottle(delay){
     const recordRun = throttle(()=>{

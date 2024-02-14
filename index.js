@@ -16,7 +16,7 @@ require('dotenv').config(); //load env
 
 app.use(express.urlencoded({ extended: true })); //true means it can look for deep element
 app.use(cors());
-app.use('/public', express.static(process.cwd() + '/public'));
+app.use('/public', express.static(__dirname + '/public'));
 
 /////// api ////////
 //const url = 'https://anime1.me/?s=p'; //test
