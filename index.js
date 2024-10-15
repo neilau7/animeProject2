@@ -142,7 +142,10 @@ async function updateAllNoImg(){
     try{
         const oldData = await animeTable.find({});
         const newDataPromises = Array.from(oldData).map(async (ele) => {
-            if (!ele.imgUrl || !await isImageURL(ele.url)){
+            const errImg = "https://user-images.githubusercontent.com/27677166/206350787-721622cd-4e03-4a02-b90c-1118d66f8a11.png";
+            const errImg2 = "https://i.ytimg.com/img/no_thumbnail.jpg";
+
+            if (!ele.imgUrl || ele.imgUrl != errImg || ele.imgUrl2 != errImg2 || !await isImageURL(ele.url)){
                 const imgUrl = await getImageUrl(ele.title);
                 ele.imgUrl = imgUrl;
                 
