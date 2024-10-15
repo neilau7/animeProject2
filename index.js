@@ -206,6 +206,8 @@ async function getImageUrl(title){
     
 };
 
+
+
 async function checkUrlExist(url){
     try{
         const oldData = await animeTable.find({url:url});
