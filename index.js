@@ -11,6 +11,8 @@ const fs = require('fs');
 const { stringify } = require('querystring');
 const { google } = require('googleapis'); //google search
 const { resolve } = require('path');
+const nodemailer = require('nodemailer'); // send email
+const puppeteer = require('puppeteer'); //crawler
 
 require('dotenv').config(); //load env
 
@@ -138,33 +140,10 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
     })
 }
 
-async function updateAllNoImg(){
-    try{
-        const oldData = await animeTable.find({});
-        const newDataPromises = Array.from(oldData).map(async (ele) => {
-            const errImg = "https://user-images.githubusercontent.com/27677166/206350787-721622cd-4e03-4a02-b90c-1118d66f8a11.png";
-            const errImg2 = "https://i.ytimg.com/img/no_thumbnail.jpg";
 
-            if (!ele.imgUrl || ele.imgUrl == errImg || ele.imgUrl2 == errImg2 || !await isImageURL(ele.url)){
-                const imgUrl = await getImageUrl(ele.title);
-                ele.imgUrl = imgUrl;
-                
-            }
-            return ele;
-        });
-        const newData = await Promise.all(newDataPromises);
-        // 将处理后的数据保存回数据库
-        const result = await animeTable.insertMany(newData);
-        console.log('updateAllNoImg Data saved successfully:', result);
-    }catch(err){
-        console.log('Error updateAllNoImg:', err);
-
-    }
-    
-}
 
 // simple func
-async function isImageURL(url) {
+async function isImageURL(url) { 
     try {
         const response = await fetch(url, { method: "HEAD" });
         const contentType = response.headers.get("Content-Type");
@@ -905,7 +884,10 @@ app.get('/update',(req,res)=>{
     console.log(`update router`);
     mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         console.log('database connected.');
-
+        
+        
+        
+        
         try{
             // Save youtube playlists to disk
             console.log(`download youtube playlists start`);
@@ -922,8 +904,12 @@ app.get('/update',(req,res)=>{
             //anime1
             console.log(`fetch anime1 playlists start`);
             await getPlaylistsAnime1();
+            
+            //update no img 
+            const updateNoImgJs = require("./updatejs/updateNoImg");
+            await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數不會有同名稱衝突
 
-            updateAllClickKey();
+            updateAllClickKey(); //update the data at backend
 
             res.send(`update accepted`);
         }catch(err){
@@ -936,6 +922,7 @@ app.get('/update',(req,res)=>{
 
 });
 
+/*
 app.get('/updateNoImg',async (req,res) => {
     mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         console.log('database connected.');
@@ -951,7 +938,7 @@ app.get('/updateNoImg',async (req,res) => {
     
     
 
-})
+})*/
 
 //export variable to another js
 module.exports = {

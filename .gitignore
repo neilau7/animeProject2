@@ -1,5 +1,4 @@
 # 忽略 .env 文件
 .env
-
 .DS_Store
 search/.DS_Store

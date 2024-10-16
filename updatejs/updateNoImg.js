@@ -1,34 +1,70 @@
 
 const express = require('express');
 const mongoose = require("mongoose"); //database
-const router = express.Router();
-module.exports = router;
+//const router = express.Router();
+//module.exports = router;
 const puppeteer = require('puppeteer');
+const nodemailer = require('nodemailer');
+
 const importTable = require("../index"); //include the parameter of index.js
 
 
+
+console.log(`user ${process.env.EMAIL_USER}`);
+console.log(`pass ${process.env.EMAIL_PASS}`);
+
+
 //----<Create model (table)>----
-//const animeTable = mongoose.model("animeTable",animeSchema);
 const animeTable = importTable["animeTable"];
 
 
-(async ()=>{
-    
+////////////////////////////////////////////////////////////////////////////////////
+////////////////////////// function ////////////////////////////////////////
+
+async function runUpdate(animeTable){
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     
-
-    
-    //const res = await getImageUrl(page,"笑容的代價｜Muse木棉花 動畫 線上看")
-    //console.log(res);
-    await updateAllNoImg(page);
+    await updateAllNoImg(page,animeTable);
+    await sendEmail();
     browser.close();
-})(); //()結尾 代表立即執行
-
+}
 
 const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
+
+// 定義一個 async 函數來寄送郵件
+async function sendEmail() {
+    // 設定傳送郵件的伺服器資訊
+    const transporter = nodemailer.createTransport({
+        service: 'gmail', // 使用 Gmail 服務
+        host: 'smtp.gmail.com',
+        port:465,
+        secure:true,
+        auth: {
+            user: process.env.EMAIL_USER, // 你的 Gmail 帳號
+            pass: process.env.EMAIL_PASS   // 你的 Gmail 密碼或應用程式密碼
+        }
+    });
+    // 設定郵件內容
+    const mailOptions = {
+        from: process.env.EMAIL_USER, // 寄件者
+        to: process.env.EMAIL_USER,   // 收件者，可以是多個收件者，逗號分隔
+        subject: 'anime update no img is end.',         // 郵件主旨
+        text: 'anime update no img is end.',     // 郵件內容（純文字）
+        // html: '<b>這是郵件內容，HTML 格式</b>' // 如果你想使用 HTML 格式
+    };
+    try {
+        // 使用 await 等待 sendMail 完成
+        const info = await transporter.sendMail(mailOptions);
+        console.log('郵件發送成功:', info.response);
+    } catch (error) {
+        console.log('郵件發送失敗:', error);
+    }
+}
+
+ 
 async function isImageURL(url) {
     try {
         const response = await fetch(url, { method: "HEAD" });
@@ -40,7 +76,7 @@ async function isImageURL(url) {
     }
 }
 
-async function getImageUrl(page,query){
+async function getImageUrlByCrawler(page,query){
 
     // start
     try{
@@ -76,7 +112,7 @@ async function getImageUrl(page,query){
     
 };
 
-async function updateAllNoImg(page){
+async function updateAllNoImg(page,animeTable){
     try{
         const oldData = await animeTable.find({});
         var newDataPromises = [];
@@ -98,7 +134,7 @@ async function updateAllNoImg(page){
             
 
             if (!ele.imgUrl || ele.imgUrl.includes('.webp') || errLoc || !await isImageURL(ele.imgUrl)){
-                const imgUrl = await getImageUrl(page,ele.title);
+                const imgUrl = await getImageUrlByCrawler(page,ele.title);
                 if (imgUrl != ''){
                     ele.imgUrl = imgUrl;
                     newDataPromises.push(ele);
@@ -112,7 +148,7 @@ async function updateAllNoImg(page){
                         );
                     }
                     //const result = await animeTable.insertMany(newData);
-                    console.log('updateAllNoImg Data saved successfully 50 items');
+                    console.log('updateAllNoImg Data saved successfully 1 items');
                     //await sleep(1000);
 
                     newDataPromises = [];//reset per 50
@@ -146,7 +182,12 @@ async function updateAllNoImg(page){
     
 }
 
-
+module.exports = {
+    sendEmail,
+    runUpdate,
+    getImageUrlByCrawler,
+    updateAllNoImg
+};
 
 
 
