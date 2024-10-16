@@ -26,6 +26,9 @@ const animeTable = importTable["animeTable"];
 })(); //()結尾 代表立即執行
 
 
+const sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+};
 async function isImageURL(url) {
     try {
         const response = await fetch(url, { method: "HEAD" });
@@ -60,7 +63,7 @@ async function getImageUrl(page,query){
             });
         });
 
-        console.log(imageUrls[0]);
+        //console.log(imageUrls[0]);
         return imageUrls[0];
 
         
@@ -76,28 +79,66 @@ async function getImageUrl(page,query){
 async function updateAllNoImg(page){
     try{
         const oldData = await animeTable.find({});
-        const newDataPromises = [];
-        
-        for (const ele of Array.from(oldData)){
-            const errImg = "https://user-images.githubusercontent.com/27677166/206350787-721622cd-4e03-4a02-b90c-1118d66f8a11.png";
-            const errImg2 = "https://i.ytimg.com/img/no_thumbnail.jpg";
+        var newDataPromises = [];
+        //var count = 1;
 
-            if (!ele.imgUrl || ele.imgUrl != errImg || ele.imgUrl2 != errImg2 || !await isImageURL(ele.imgUrl)){
+        for (const ele of Array.from(oldData)){
+            console.log(`\n title : ${ele.title}`);
+            const errImgLists = ["https://user-images.githubusercontent.com/27677166/206350787-721622cd-4e03-4a02-b90c-1118d66f8a11.png"
+                ,"https://i.ytimg.com/img/no_thumbnail.jpg"
+                ,"https://i.ytimg.com/vi/TYGyru4k9Hg/hqdefault.jpg"
+                ,"https://imgv2-2-f.scribdassets.com/img/document/474721002/original/4aeaeca930/1707403649?v=1"
+                
+            ] ;
+            var errLoc = 0;
+            for ( const i of errImgLists ){
+                if (ele.imgUrl == i) errLoc++; 
+            }
+            
+            
+
+            if (!ele.imgUrl || ele.imgUrl.includes('.webp') || errLoc || !await isImageURL(ele.imgUrl)){
                 const imgUrl = await getImageUrl(page,ele.title);
                 if (imgUrl != ''){
                     ele.imgUrl = imgUrl;
+                    newDataPromises.push(ele);
+                    
+                    
+                    const newData = newDataPromises;
+                    for (const single of newData){
+                        await animeTable.updateOne(
+                            { url: single.url }, // 查找條件
+                            { $set: { imgUrl: single.imgUrl } } // 更新內容
+                        );
+                    }
+                    //const result = await animeTable.insertMany(newData);
+                    console.log('updateAllNoImg Data saved successfully 50 items');
+                    //await sleep(1000);
+
+                    newDataPromises = [];//reset per 50
+                    
+                    
                 }
                 
             }
-            newDataPromises.push(ele);
+            
+            
+            
         }
             
         
         //const newData = await Promise.all(newDataPromises); //等待所有promise結束
         // 将处理后的数据保存回数据库
-        const newData = newDataPromises
-        const result = await animeTable.insertMany(newData);
-        console.log('updateAllNoImg Data saved successfully:', result);
+        
+        const newData = newDataPromises;
+        for (const single of newData){
+            await animeTable.updateOne(
+                { url: single.url }, // 查找條件
+                { $set: { imgUrl: single.imgUrl } } // 更新內容
+            );
+        }
+        //const result = await animeTable.insertMany(newData);
+        console.log('updateAllNoImg Data saved successfully');
     }catch(err){
         console.log('Error updateAllNoImg:', err);
 

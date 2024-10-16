@@ -61,7 +61,7 @@ async function getImageUrl(query){
     
     
 };
-getImageUrl("ok");
+//getImageUrl("ok");
 
 
 
