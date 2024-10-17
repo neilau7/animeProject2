@@ -50,6 +50,9 @@ const animeSchema = {
 const animeTable = mongoose.model("animeTable",animeSchema);
 
 
+const sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+};
 const processHtmlYoutube = (filePath, keyword, maxNum, page) => {
     return new Promise(async (resolve,reject)=>{
         try{
@@ -86,6 +89,7 @@ const processHtmlYoutube = (filePath, keyword, maxNum, page) => {
         
     })
 }
+
 // fetch anime1
 
 async function getDateImgAnime1(title) { //get { date:DATE, imgUrl:""}
@@ -497,44 +501,46 @@ function getPlaylistsAnime1(){ // if title key of mongoose doesn't exist, update
         .then(data => {
             console.log(`anime1 api : \n `);
             //const jsonData = JSON.parse(data);
-            
-            Array.from(data).forEach(async ele => {
-                const anime1Id = ele[0];
-                const title = ele[1];
-                try{
-                    if (await checkTitleExist(title)){ // check exist
-                        return ;
+            for (const ele of Array.from(data)){
+                (async () => {
+                    const anime1Id = ele[0];
+                    const title = ele[1];
+                    try{
+                        if (await checkTitleExist(title)){ // check exist
+                            return ;
+                        }
+                    }catch(err){
+                        console.error(`Error checkTitleExist : \n ${err}`);
                     }
-                }catch(err){
-                    console.error(`Error checkTitleExist : \n ${err}`);
-                }
-                
-                var dateImgData = { //default
-                    imgUrl:'',
-                    date:null
-                };
-                
-                
-                dateImgData = await getDateImgAnime1(title);
-                if (Object.keys(dateImgData).length === 0 || dateImgData.imgUrl == ''){
-                    return;
-                }
-                
-                
-                const resdata = {
-                    title:title,
-                    url:`https://anime1.me/?cat=` + anime1Id,
-                    imgUrl:dateImgData.imgUrl,
-                    date:dateImgData.date,
-                    from:'anime1'
+                    
+                    var dateImgData = { //default
+                        imgUrl:'',
+                        date:null
+                    };
+                    
+                    
+                    dateImgData = await getDateImgAnime1(title);
+                    if (Object.keys(dateImgData).length === 0 || dateImgData.imgUrl == ''){
+                        return;
+                    }
+                    
+                    
+                    const resdata = {
+                        title:title,
+                        url:`https://anime1.me/?cat=` + anime1Id,
+                        imgUrl:dateImgData.imgUrl,
+                        date:dateImgData.date,
+                        from:'anime1'
 
-                }
-                await updateToDatabase([resdata]);
-                console.log(`final anime1 data \n ${JSON.stringify(resdata)}`);
+                    }
+                    await updateToDatabase([resdata]);
+                    console.log(`final anime1 data \n ${JSON.stringify(resdata)}`);
+                })
+                
+                sleep(1000);
+            }
 
-
-
-            });
+    
             resolve({status:'finish'});
 
 
