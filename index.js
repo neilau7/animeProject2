@@ -937,7 +937,7 @@ app.get('/updateNoImg',async (req,res) => {
             res.send(`Error updateAllNoImg`);
         }
     });
-    
+
 })
 
 //export variable to another js
