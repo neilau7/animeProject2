@@ -920,7 +920,6 @@ app.get('/update',(req,res)=>{
             res.send(`Err update databse : \n ${err}`);
         }
         
-
     });
 
 });
