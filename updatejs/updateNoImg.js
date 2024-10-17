@@ -117,49 +117,60 @@ async function getImageUrlByCrawler(page,query){ //return imgurl
 
 async function updateAllNoImg(page,animeTable){
     try{
-        const oldData = await animeTable.find({});
+        const errImgLists = [
+            "https://user-images.githubusercontent.com/27677166/206350787-721622cd-4e03-4a02-b90c-1118d66f8a11.png"
+            ,"https://i.ytimg.com/img/no_thumbnail.jpg"
+            ,"https://i.ytimg.com/vi/TYGyru4k9Hg/hqdefault.jpg"
+            ,"https://imgv2-2-f.scribdassets.com/img/document/474721002/original/4aeaeca930/1707403649?v=1"
+            ,"https://pbs.twimg.com/media/GX30K1sXgAAKW6d?format=jpg&name=large"
+            ,"https://i.ytimg.com/vi/DeSEMcMcXWQ/hqdefault.jpg"
+            ,"https://st4.depositphotos.com/14953852/24787/v/450/depositphotos_247872612-stock-illustration-no-image-available-icon-vector.jpg"
+            
+        ] ;
+    
+
+        const oldData = await animeTable.find({
+            $or: [
+                ...errImgLists.map(str => ({
+                    // 对每个 URL 进行转义处理，以便正则表达式可以正确匹配
+                    imgUrl: { $regex: str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' }
+                })),
+                { imgUrl: "" }, // 查找 imgUrl 为空字符串的情况
+                { imgUrl: { $regex: '\\.webp$', $options: 'i' } } // 查找包含 .webp 的情况，不区分大小写
+            ]
+            
+        });
+        
+        console.log(oldData);
+        
+        //const oldData = await animeTable.find({});
+
         var newDataPromises = [];
         //var count = 1;
 
         for (const ele of Array.from(oldData)){
             console.log(`\n title : ${ele.title}`);
-            const errImgLists = ["https://user-images.githubusercontent.com/27677166/206350787-721622cd-4e03-4a02-b90c-1118d66f8a11.png"
-                ,"https://i.ytimg.com/img/no_thumbnail.jpg"
-                ,"https://i.ytimg.com/vi/TYGyru4k9Hg/hqdefault.jpg"
-                ,"https://imgv2-2-f.scribdassets.com/img/document/474721002/original/4aeaeca930/1707403649?v=1"
-                ,"https://pbs.twimg.com/media/GX30K1sXgAAKW6d?format=jpg&name=large"
+            ////////////
+            sleep(1000);
+            const imgUrl = await getImageUrlByCrawler(page,ele.title.replace("《"," ").replace("》",""));
+            if (imgUrl != ''){
+                ele.imgUrl = imgUrl;
+                newDataPromises.push(ele);
                 
-            ] ;
-            var errLoc = 0;
-            for ( const i of errImgLists ){
-                if (ele.imgUrl == i) errLoc++; 
-            }
-            
-            
-
-            if (!ele.imgUrl || ele.imgUrl.includes('.webp') || errLoc || !await isImageURL(ele.imgUrl)){
-                sleep(1000);
-                const imgUrl = await getImageUrlByCrawler(page,ele.title);
-                if (imgUrl != ''){
-                    ele.imgUrl = imgUrl;
-                    newDataPromises.push(ele);
-                    
-                    
-                    const newData = newDataPromises;
-                    for (const single of newData){
-                        await animeTable.updateOne(
-                            { url: single.url }, // 查找條件
-                            { $set: { imgUrl: single.imgUrl } } // 更新內容
-                        );
-                    }
-                    //const result = await animeTable.insertMany(newData);
-                    console.log('updateAllNoImg Data saved successfully 1 items');
-                    //await sleep(1000);
-
-                    newDataPromises = [];//reset per 50
-                    
-                    
+                
+                const newData = newDataPromises;
+                for (const single of newData){
+                    await animeTable.updateOne(
+                        { url: single.url }, // 查找條件
+                        { $set: { imgUrl: single.imgUrl } } // 更新內容
+                    );
                 }
+                //const result = await animeTable.insertMany(newData);
+                console.log('updateAllNoImg Data saved successfully 1 items');
+                //await sleep(1000);
+
+                newDataPromises = [];//reset per 50
+                
                 
             }
             
