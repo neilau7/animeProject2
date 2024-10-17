@@ -536,7 +536,7 @@ function getPlaylistsAnime1(){ // if title key of mongoose doesn't exist, update
                     await updateToDatabase([resdata]);
                     console.log(`final anime1 data \n ${JSON.stringify(resdata)}`);
                 })
-                
+
                 sleep(1000);
             }
 
@@ -959,7 +959,7 @@ app.get('/update',(req,res)=>{
 
 });
 
-/*
+
 app.get('/updateNoImg',async (req,res) => {
     mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         console.log('database connected.');
@@ -973,7 +973,7 @@ app.get('/updateNoImg',async (req,res) => {
         }
     });
 
-})*/
+})
 
 //export variable to another js
 module.exports = {
