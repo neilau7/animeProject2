@@ -124,6 +124,7 @@ async function updateAllNoImg(page,animeTable){
                 ,"https://i.ytimg.com/img/no_thumbnail.jpg"
                 ,"https://i.ytimg.com/vi/TYGyru4k9Hg/hqdefault.jpg"
                 ,"https://imgv2-2-f.scribdassets.com/img/document/474721002/original/4aeaeca930/1707403649?v=1"
+                ,"https://pbs.twimg.com/media/GX30K1sXgAAKW6d?format=jpg&name=large"
                 
             ] ;
             var errLoc = 0;

@@ -100,13 +100,15 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
             // 在这里使用 cheerio 来解析 HTML 和提取数据
             const titleRes = $('h2.entry-title'); //jQuery Obj
             const date = new Date($(titleRes[0]).next().find("time").first().attr("datetime"));
-            console.log(`date ${date}`);
+            //console.log(`date ${date}`);
             const resData = {
                 imgUrl:'',
                 date:date
             };
             //console.log(typeof(titleRes)); 
             // 执行搜索请求
+            
+
             customsearch.cse.list({
                 auth: googleApi,
                 cx: cseId,
@@ -126,6 +128,7 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
                     resolve(resData);
                 }catch(err){
                     console.log(`fetch anime1 imgUrl err :\n ${err}`);
+                    resData.imgUrl = "";
                     resolve(resData);
                 }
                 
@@ -482,12 +485,12 @@ function getPlaylistsAnime1(){ // if title key of mongoose doesn't exist, update
                     date:null
                 };
                 
-                try{
-                    dateImgData = await getDateImgAnime1(title);
-                }catch(err){
-                    console.log(`getDateImgAnime1 Error :\n ${err}`);
-
+                
+                dateImgData = await getDateImgAnime1(title);
+                if (Object.keys(dateImgData).length === 0 || dateImgData.imgUrl == ''){
+                    return;
                 }
+                
                 
                 const resdata = {
                     title:title,
@@ -907,7 +910,7 @@ app.get('/update',(req,res)=>{
             
             //update no img 
             const updateNoImgJs = require("./updatejs/updateNoImg");
-            await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數不會有同名稱衝突
+            await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數，不同檔案的函數不會有同名稱衝突
 
             updateAllClickKey(); //update the data at backend
 
@@ -922,12 +925,13 @@ app.get('/update',(req,res)=>{
 
 });
 
-/*
+
 app.get('/updateNoImg',async (req,res) => {
     mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         console.log('database connected.');
         try{
-            await updateAllNoImg();
+            const updateNoImgJs = require("./updatejs/updateNoImg");
+            await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數不會有同名稱衝突
             res.send(`updateAllNoImg finished`);
         }catch(err){
             console.log(`Error updateAllNoImg : \n ${err}`);
@@ -935,10 +939,7 @@ app.get('/updateNoImg',async (req,res) => {
         }
     });
     
-    
-    
-
-})*/
+})
 
 //export variable to another js
 module.exports = {
