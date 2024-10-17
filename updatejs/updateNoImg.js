@@ -10,10 +10,6 @@ const importTable = require("../index"); //include the parameter of index.js
 
 
 
-console.log(`user ${process.env.EMAIL_USER}`);
-console.log(`pass ${process.env.EMAIL_PASS}`);
-
-
 //----<Create model (table)>----
 const animeTable = importTable["animeTable"];
 
