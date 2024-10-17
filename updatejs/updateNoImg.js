@@ -86,7 +86,7 @@ async function getImageUrlByCrawler(page,query){ //return imgurl
         
         // Google Images 搜尋 URL，將 'query' 替換成你的搜尋關鍵詞
         const searchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
-        await page.goto(searchUrl, { waitUntil: 'networkidle2' });
+        await page.goto(searchUrl, { waitUntil: 'networkidle2',timeout: 30000 });
 
 
         // 等待圖片元素載入
@@ -138,6 +138,7 @@ async function updateAllNoImg(page,animeTable){
             
 
             if (!ele.imgUrl || ele.imgUrl.includes('.webp') || errLoc || !await isImageURL(ele.imgUrl)){
+                sleep(1000);
                 const imgUrl = await getImageUrlByCrawler(page,ele.title);
                 if (imgUrl != ''){
                     ele.imgUrl = imgUrl;
