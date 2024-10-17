@@ -2,3 +2,4 @@
 .env
 .DS_Store
 search/.DS_Store
+.puppeteer.config.cjs
