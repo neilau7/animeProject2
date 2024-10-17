@@ -203,16 +203,18 @@ async function getImageUrl(title){
         var indexImg = 0;
         var imgUrlNew = response.data.items[ indexImg ].link; 
         var loop = 1;
-        const maxLoop = 5;
-        while( !await isImageURL(imgUrlNew) && loop <= maxLoop){
+        const maxLoop = 2;
+        while( loop <= maxLoop){
+            if (await isImageURL(imgUrlNew)) {
+                return imgUrlNew;
+            }
             indexImg = indexImg + 1;
             imgUrlNew = response.data.items[indexImg].link; 
 
             loop = loop + 1;
         }
 
-        console.log(`getImageUrl : ${imgUrlNew}`);
-        return imgUrlNew;
+        return '';
     }catch(err){
         console.log(`Err getImageUrl : \n ${err}`);
         return '';
@@ -713,7 +715,12 @@ function readData(filePath){                                     //read the data
 mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     console.log('database connected.')
     //processHtmlAnime1('https://anime1.me/?s=%E7%95%B0%E4%BF%AE%E7%BE%85');
-
+    var [totalNum, weekTotalNum, monthTotalNum] = await Promise.all([
+        animeTable.countDocuments({}),
+        animeTable.countDocuments({clickWeek:{$ne:0}}),
+        animeTable.countDocuments({clickMonth:{$ne:0}})
+    ]);
+    //console.log(` totalNum , weekTotalNum, monthTotalNum = ${totalNum},${weekTotalNum},${monthTotalNum}`);
     /////////////
     app.get('/', function (req, res) {
         console.log("path = ",process.cwd());
@@ -790,7 +797,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     
         try{
             
-            const results = await animeTable.find()
+            const results = await animeTable.find({clickWeek:{$ne:0}})
                 .sort({ clickWeek: -1 }) // 按照降序排序
                 .skip(skip)
                 .limit(num); // 限制结果数量
@@ -815,7 +822,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     
         try{
             
-            const results = await animeTable.find()
+            const results = await animeTable.find({clickMonth:{$ne:0}})
                 .sort({ clickMonth: -1 }) // 按照降序排序
                 .skip(skip)
                 .limit(num); // 限制结果数量
@@ -910,21 +917,9 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         
 
     })
-    //
-
-
-}).catch((err) => {
-    console.log(`Connect Mongoose fail`);
-})
-
-////////////// Update Router/////////////////////////////////////////////
-app.get('/update',(req,res)=>{
-    console.log(`update router`);
-    mongoose.connect(process.env.mongooseUrl).then(async ()=>{
-        console.log('database connected.');
-        
-        
-        
+    // UPDATE
+    app.get('/update',async (req,res)=>{
+        console.log(`update router`);
         
         try{
             // Save youtube playlists to disk
@@ -935,10 +930,10 @@ app.get('/update',(req,res)=>{
             console.log(`Upload youtube playlists start`);
             //saveToDatabaseYoutube('playlist_aniOne.json','',0,1); //upload 部分
             //saveToDatabaseYoutube('playlist_muse.json','',0,1);    
-
+    
             saveAllToDatabaseYoutube('playlist_aniOne.json');     //upload 全部
             saveAllToDatabaseYoutube('playlist_muse.json');
-
+    
             //anime1
             console.log(`fetch anime1 playlists start`);
             await getPlaylistsAnime1();
@@ -946,34 +941,42 @@ app.get('/update',(req,res)=>{
             //update no img 
             const updateNoImgJs = require("./updatejs/updateNoImg");
             await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數，不同檔案的函數不會有同名稱衝突
-
+    
             updateAllClickKey(); //update the data at backend
-
+            totalNum = animeTable.countDocuments({});
+            weekTotalNum = animeTable.countDocuments({clickWeek:{$ne:0}});
+            monthTotalNum = animeTable.countDocuments({clickMonth:{$ne:0}});
+    
             res.send(`update accepted`);
         }catch(err){
             console.log(`Err update databse : \n ${err}`);
             res.send(`Err update databse : \n ${err}`);
         }
-        
+            
+        app.get('/updateNoImg',async (req,res) => {
+    
+            console.log('database connected.');
+            try{
+                const updateNoImgJs = require("./updatejs/updateNoImg");
+                await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數不會有同名稱衝突
+                res.send(`updateAllNoImg finished`);
+            }catch(err){
+                console.log(`Error updateAllNoImg : \n ${err}`);
+                res.send(`Error updateAllNoImg`);
+            }
+        })
+    
     });
 
-});
-
-
-app.get('/updateNoImg',async (req,res) => {
-    mongoose.connect(process.env.mongooseUrl).then(async ()=>{
-        console.log('database connected.');
-        try{
-            const updateNoImgJs = require("./updatejs/updateNoImg");
-            await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數不會有同名稱衝突
-            res.send(`updateAllNoImg finished`);
-        }catch(err){
-            console.log(`Error updateAllNoImg : \n ${err}`);
-            res.send(`Error updateAllNoImg`);
-        }
-    });
-
+}).catch((err) => {
+    console.log(`Connect Mongoose fail`);
 })
+
+////////////// Update Router/////////////////////////////////////////////
+
+
+
+
 
 //export variable to another js
 module.exports = {
