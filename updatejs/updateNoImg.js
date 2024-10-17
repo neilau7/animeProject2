@@ -79,7 +79,7 @@ async function isImageURL(url) {
     }
 }
 
-async function getImageUrlByCrawler(page,query){
+async function getImageUrlByCrawler(page,query){ //return imgurl
 
     // start
     try{

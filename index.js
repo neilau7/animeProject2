@@ -87,6 +87,64 @@ const processHtmlYoutube = (filePath, keyword, maxNum, page) => {
     })
 }
 // fetch anime1
+/*
+async function getDateImgAnime1_test(page,title) { //get { date:DATE, imgUrl:""}
+    
+        const anime1Url = 'https://anime1.me/?s=' + encodeURIComponent(title);
+        const response = await axios.get(anime1Url);
+        
+        console.log('');
+        console.log(`<< getDateAnime1 >>`);
+
+        const html = response.data;
+        const $ = cheerio.load(html);
+
+        
+        const titleRes = $('h2.entry-title'); //jQuery Obj
+        const date = new Date($(titleRes[0]).next().find("time").first().attr("datetime"));
+        //console.log(`date ${date}`);
+        const resData = {
+            imgUrl:'',
+            date:date
+        };
+        //console.log(typeof(titleRes)); 
+        // 执行搜索请求
+        
+
+        customsearch.cse.list({
+            auth: googleApi,
+            cx: cseId,
+            q: encodeURIComponent(title),
+            search_type: 'image' // 指定搜索类型为图片
+        }, (err, res) => {
+            if (err) {
+                console.log('Error searching images:', err);
+                resolve(resData);
+                return;
+            }
+        
+            // 输出搜索结果
+            try{
+                resData.imgUrl = res.data.items[0].link;
+                console.log('getDateImgAnime1 response : \n', resData);
+                resolve(resData);
+            }catch(err){
+                console.log(`fetch anime1 imgUrl err :\n ${err}`);
+                resData.imgUrl = "";
+                resolve(resData);
+            }
+            
+        });
+            
+        
+        .catch(error => {
+            console.error('Error fetching the page:', error);
+            //reject( error);
+            resolve({});
+        });
+    
+}*/
+
 const getDateImgAnime1 = (title) => { //get date and imgUrl
     return new Promise((resolve,reject)=>{
         const anime1Url = 'https://anime1.me/?s=' + encodeURIComponent(title);
@@ -142,7 +200,6 @@ const getDateImgAnime1 = (title) => { //get date and imgUrl
         });
     })
 }
-
 
 
 // simple func
@@ -924,7 +981,7 @@ app.get('/update',(req,res)=>{
 
 });
 
-
+/*
 app.get('/updateNoImg',async (req,res) => {
     mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         console.log('database connected.');
@@ -938,7 +995,7 @@ app.get('/updateNoImg',async (req,res) => {
         }
     });
 
-})
+})*/
 
 //export variable to another js
 module.exports = {
