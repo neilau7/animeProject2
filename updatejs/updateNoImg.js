@@ -7,6 +7,7 @@ const puppeteer = require('puppeteer');
 const nodemailer = require('nodemailer');
 
 const importTable = require("../index"); //include the parameter of index.js
+const { timeout } = require('puppeteer');
 
 
 
@@ -82,11 +83,12 @@ async function getImageUrlByCrawler(page,query){ //return imgurl
         
         // Google Images 搜尋 URL，將 'query' 替換成你的搜尋關鍵詞
         const searchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
-        await page.goto(searchUrl, { waitUntil: 'networkidle2',timeout: 30000 });
+        //await page.goto(searchUrl, { waitUntil: 'networkidle2',timeout: 30000 });
+        await page.goto(searchUrl);
 
 
         // 等待圖片元素載入
-        await page.waitForSelector('img');
+        await page.waitForSelector('img',{timeout:10000});
 
         // 爬取圖片的 URL
         const imageUrls = await page.evaluate(() => {

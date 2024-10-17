@@ -953,20 +953,19 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
             res.send(`Err update databse : \n ${err}`);
         }
             
-        app.get('/updateNoImg',async (req,res) => {
-    
-            console.log('database connected.');
-            try{
-                const updateNoImgJs = require("./updatejs/updateNoImg");
-                await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數不會有同名稱衝突
-                res.send(`updateAllNoImg finished`);
-            }catch(err){
-                console.log(`Error updateAllNoImg : \n ${err}`);
-                res.send(`Error updateAllNoImg`);
-            }
-        })
-    
     });
+    app.get('/updateNoImg',async (req,res) => {
+    
+        console.log('database connected.');
+        try{
+            const updateNoImgJs = require("./updatejs/updateNoImg");
+            await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數不會有同名稱衝突
+            res.send(`updateAllNoImg finished`);
+        }catch(err){
+            console.log(`Error updateAllNoImg : \n ${err}`);
+            res.send(`Error updateAllNoImg`);
+        }
+    })
 
 }).catch((err) => {
     console.log(`Connect Mongoose fail`);
