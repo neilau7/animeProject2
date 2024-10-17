@@ -23,8 +23,7 @@ const animeTable = importTable["animeTable"];
 
 async function runUpdate(animeTable){
     const browser = await puppeteer.launch({ 
-        headless: true,
-        dumpio:true,
+        headless: true, //dumpio:true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
     const page = await browser.newPage();
