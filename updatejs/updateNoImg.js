@@ -26,7 +26,7 @@ async function runUpdate(animeTable){
     const page = await browser.newPage();
     
     await updateAllNoImg(page,animeTable);
-    await sendEmail();
+    //await sendEmail("update no img finish");
     browser.close();
 }
 
@@ -35,7 +35,7 @@ const sleep = (ms) => {
 };
 
 // 定義一個 async 函數來寄送郵件
-async function sendEmail() {
+async function sendEmail(title) {
     // 設定傳送郵件的伺服器資訊
     const transporter = nodemailer.createTransport({
         service: 'gmail', // 使用 Gmail 服務
@@ -51,8 +51,8 @@ async function sendEmail() {
     const mailOptions = {
         from: process.env.EMAIL_USER, // 寄件者
         to: process.env.EMAIL_USER,   // 收件者，可以是多個收件者，逗號分隔
-        subject: 'anime update no img is end.',         // 郵件主旨
-        text: 'anime update no img is end.',     // 郵件內容（純文字）
+        subject: title,         // 郵件主旨
+        text: title,     // 郵件內容（純文字）
         // html: '<b>這是郵件內容，HTML 格式</b>' // 如果你想使用 HTML 格式
     };
     try {

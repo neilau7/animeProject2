@@ -53,6 +53,36 @@ const animeTable = mongoose.model("animeTable",animeSchema);
 const sleep = (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
+
+async function sendEmail(title) {
+    // 設定傳送郵件的伺服器資訊
+    const transporter = nodemailer.createTransport({
+        service: 'gmail', // 使用 Gmail 服務
+        host: 'smtp.gmail.com',
+        port:465,
+        secure:true,
+        auth: {
+            user: process.env.EMAIL_USER, // 你的 Gmail 帳號
+            pass: process.env.EMAIL_PASS   // 你的 Gmail 密碼或應用程式密碼
+        }
+    });
+    // 設定郵件內容
+    const mailOptions = {
+        from: process.env.EMAIL_USER, // 寄件者
+        to: process.env.EMAIL_USER,   // 收件者，可以是多個收件者，逗號分隔
+        subject: title,         // 郵件主旨
+        text: title,     // 郵件內容（純文字）
+        // html: '<b>這是郵件內容，HTML 格式</b>' // 如果你想使用 HTML 格式
+    };
+    try {
+        // 使用 await 等待 sendMail 完成
+        const info = await transporter.sendMail(mailOptions);
+        console.log('郵件發送成功:', info.response);
+    } catch (error) {
+        console.log('郵件發送失敗:', error);
+    }
+}
+
 const processHtmlYoutube = (filePath, keyword, maxNum, page) => {
     return new Promise(async (resolve,reject)=>{
         try{
@@ -597,7 +627,7 @@ async function updateClickWeekNum(url){
 
         console.log("Weekly Data:", weeklyData);
         const resultNum = (weeklyData.length !== 0)? weeklyData[0].count.length : 0;
-        BuildKeyAndData(url,'clickWeek',resultNum);
+        await BuildKeyAndData(url,'clickWeek',resultNum);
         return resultNum;
 
       } catch (err) {
@@ -634,7 +664,7 @@ async function updateClickMonthNum(url){
       
         console.log("Monthly Data:", monthlyData);
         const resultNum = (monthlyData.length !== 0)? monthlyData[0].count.length : 0;
-        BuildKeyAndData(url,'clickMonth',resultNum);
+        await BuildKeyAndData(url,'clickMonth',resultNum);
         return  resultNum;
 
       } catch (err) {
@@ -648,7 +678,7 @@ async function updateClickNum(url){
         console.log(`updateClickNum start`);
         const results = await animeTable.find({url:url});
         const clickNum = (results.length !== 0)? results[0].count.length : 0;
-        BuildKeyAndData(url,'click',clickNum);
+        await BuildKeyAndData(url,'click',clickNum);
         return clickNum;
     }catch(err){
         console.log(`Err updateClickKey ${err}`);
@@ -658,19 +688,23 @@ async function updateClickNum(url){
 }
 
 async function updateClickKey(url){ //update single specified url
- updateClickWeekNum(url);
- updateClickMonthNum(url);
- updateClickNum(url);
+ const w1 = updateClickWeekNum(url);
+ const w2 = updateClickMonthNum(url);
+ const w3 = updateClickNum(url);
+ await Promise.all([w1,w2,w3]);
 };
 
 async function updateAllClickKey(){
     try{
         const results = await animeTable.find({})
-        Array.from(results).forEach(async (ele)=>{
+        await Promise.all(
+            Array.from(results).map(async (ele)=>{
 
-            await updateClickKey(ele.url);
-            console.log(`updateClickKey finished : ${ele.url}`);
-        })
+                await updateClickKey(ele.url);
+                console.log(`updateClickKey finished : ${ele.url}`);
+            })
+        );
+        
     }
     catch(err){
         console.log(`Err updateClickKey : \n ${err}`);
@@ -961,12 +995,27 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
             const updateNoImgJs = require("./updatejs/updateNoImg");
             await updateNoImgJs.runUpdate(animeTable); //以module.func1 方式引用函數，不同檔案的函數不會有同名稱衝突
     
-            updateAllClickKey(); //update the data at backend
-            totalNum = animeTable.countDocuments({});
-            weekTotalNum = animeTable.countDocuments({clickWeek:{$ne:0}});
-            monthTotalNum = animeTable.countDocuments({clickMonth:{$ne:0}});
-    
+
+            const updateAllClickKeyWork = updateAllClickKey(); //update the data at backend
+            const totalNumWork = animeTable.countDocuments({});
+            const weekTotalNumWork = animeTable.countDocuments({clickWeek:{$ne:0}});
+            const monthTotalNumWork = animeTable.countDocuments({clickMonth:{$ne:0}});
+            
             res.send(`update accepted`);
+
+            var updateAllClickKeyRes = null;
+            [totalNum, weekTotalNum, monthTotalNum,updateAllClickKeyRes] = await Promise.all([totalNumWork, weekTotalNumWork,monthTotalNumWork,updateAllClickKeyWork]);
+            console.log(`${totalNum},${weekTotalNum},${monthTotalNum},${updateAllClickKeyRes},`);
+            /*
+            totalNum = await totalNumRes.json();
+            weekTotalNum = await weekTotalNumRes.json();
+            monthTotalNum = await monthTotalNumRes.json();
+            */
+            sendEmail("update finish");
+            
+
+            
+            
         }catch(err){
             console.log(`Err update databse : \n ${err}`);
             res.send(`Err update databse : \n ${err}`);
