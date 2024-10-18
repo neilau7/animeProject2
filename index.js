@@ -196,7 +196,7 @@ async function getImageUrl(title){
         const response = await customsearch.cse.list({
             auth: googleApi,
             cx: cseId,
-            q: title,
+            q: title.replace("《"," ").replace("》"," ") + " anime",
             search_type: 'image' // 指定搜索类型为图片
         });
 
@@ -730,7 +730,12 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     app.get('/api/new',async (req,res)=>{
         const num = (req.query.num)? parseInt(req.query.num) : 0;
         const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
+        const totalLoc = (req.query.totalLoc === 'Y')? true : false;
         try{
+            if (totalLoc){
+                res.json(totalNum);
+                return;
+            }
             const results = await animeTable.find()
             .sort({ date: -1 }) // 按照时间戳降序排序
             .skip(skip)
@@ -750,8 +755,13 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         console.log(` hot router`);
         const num = (req.query.num)? parseInt(req.query.num) : 0;
         const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
-    
+        const totalLoc = (req.query.totalLoc === 'Y')? true : false;
+        
         try{
+            if (totalLoc){
+                res.json(totalNum);
+                return;
+            }
             const results = await animeTable.find({})
                 .sort({click:-1})
                 .skip(skip)
@@ -761,7 +771,6 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
             if (results.length === 0){
                 const allResults = await animeTable.find().limit(num);
                 res.json(allResults);
-                
             }
             res.json(results);
         }catch(err){
@@ -773,30 +782,36 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
     });
     
     
-    app.get('/api/random',(req,res)=>{
+    app.get('/api/random',async (req,res)=>{
         const num = (req.query.num)? parseInt(req.query.num) : 0;
-        
-        animeTable.aggregate([
-            { $sample: { size: num } } // 从集合中随机获取 10 条数据
-          ])
-          .then(result => {
+        const totalLoc = (req.query.totalLoc === 'Y')? true : false;
+        try{
+            if (totalLoc){
+                res.json(totalNum);
+                return;
+            }
+            const result = await animeTable.aggregate([
+                { $sample: { size: num } } // 从集合中随机获取 10 条数据
+            ]);
             console.log(result); // 输出随机获取的数据
             res.json(result);
-          })
-          .catch(err => {
+        }catch(err){
             console.log(`random router Err : \n ${err}`); // 打印错误信息
             res.json({});
-          });
+        }
           
-      });
+    });
 
     app.get('/api/week',async (req,res)=>{
         console.log(` week router`);
         const num = (req.query.num)? parseInt(req.query.num) : 0;
         const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
-    
+        const totalLoc = (req.query.totalLoc === 'Y')? true : false;
         try{
-            
+            if (totalLoc){
+                res.json(weekTotalNum);
+                return;
+            }
             const results = await animeTable.find({clickWeek:{$ne:0}})
                 .sort({ clickWeek: -1 }) // 按照降序排序
                 .skip(skip)
@@ -819,8 +834,12 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
         console.log(` month router`);
         const num = (req.query.num)? parseInt(req.query.num) : 0;
         const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
-    
+        const totalLoc = (req.query.totalLoc === 'Y')? true : false;
         try{
+            if (totalLoc){
+                res.json(monthTotalNum);
+                return;
+            }
             
             const results = await animeTable.find({clickMonth:{$ne:0}})
                 .sort({ clickMonth: -1 }) // 按照降序排序
@@ -834,7 +853,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
             res.json(results);
         }catch(err){
             console.log(`week router err : \n ${err}`);
-            res.json({});
+            res.json(res.json({}));
     
         }
         

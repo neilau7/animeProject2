@@ -80,7 +80,7 @@ async function getImageUrlByCrawler(page,query){ //return imgurl
 
     // start
     try{
-        
+        query+=" anime"
         // Google Images 搜尋 URL，將 'query' 替換成你的搜尋關鍵詞
         const searchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
         //await page.goto(searchUrl, { waitUntil: 'networkidle2',timeout: 30000 });
@@ -150,7 +150,7 @@ async function updateAllNoImg(page,animeTable){
             console.log(`\n title : ${ele.title}`);
             ////////////
             sleep(1000);
-            const imgUrl = await getImageUrlByCrawler(page,ele.title.replace("《"," ").replace("》",""));
+            const imgUrl = await getImageUrlByCrawler(page,ele.title.replace("《"," ").replace("》"," "));
             if (imgUrl != ''){
                 ele.imgUrl = imgUrl;
                 newDataPromises.push(ele);

@@ -324,6 +324,7 @@
 
             const response = await fetch(`/api/${apiType}?num=${num}`);
             const data = await response.json();
+        
 
             Array.from(data).forEach(async (ele) => {
                 console.log(ele);
