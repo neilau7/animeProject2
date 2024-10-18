@@ -715,7 +715,7 @@
         }
 
         function createSearchLink(){
-
+            
             const searchInputEle = document.getElementById('search-input');
             const searchLinkEle = document.getElementById('search-link');
             searchLinkEle.addEventListener('click',()=>{
@@ -724,7 +724,17 @@
                 console.log(`Search ${searchInputEle.value}`);
                 window.location.href = `/search/searchpage/${keyword}`;
             });
+            searchInputEle.addEventListener('keydown',(event)=>{
+                if (event.key === "Enter"){
+                    const keyword = encodeURIComponent( searchInputEle.value);
+                    console.log(`Search ${searchInputEle.value}`);
+                    window.location.href = `/search/searchpage/${keyword}`;
+                }
+                
+            });
+
         };
+
 
         function throttle(func, limit) {
             let inThrottle;

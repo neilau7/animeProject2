@@ -55,18 +55,32 @@ router.get('/searchpage/:keyword?', function (req, res) { //?代表可無
 router.get('/api', async (req,res) => { 
     
     const keyword = (req.query.keyword)? req.query.keyword : '';
+    const num = (req.query.num)? parseInt(req.query.num) : 0;
+    const skip = (req.query.skip)? parseInt(req.query.skip) : 0; //從skip開始選num筆
+    const totalLoc = (req.query.totalLoc === 'Y')? true : false;
     console.log(`keyword router start : ${keyword}`);
     const regex = new RegExp(keyword,'i'); //會自動生成regex，包含特殊符號也一併處理
 
     try{
+        if (totalLoc){
+            const totalNum = await importTable.animeTable.countDocuments({
+                title:{$regex:regex}
+            })
+            res.json(totalNum);
+            return;
+        }
         const results = await importTable.animeTable.find({
             title:{$regex:regex}
-        });
+        })
+        .sort({date:-1})
+        .skip(skip)
+        .limit(num);
+
         res.json(results);
     }
     catch (err){
         console.log(`Err keyword router : \n ${err}`);
-        res.json([]);
+        res.json({});
     }
     
 

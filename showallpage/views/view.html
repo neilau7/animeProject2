@@ -534,6 +534,15 @@
                 console.log(`Search ${searchInputEle.value}`);
                 window.location.href = `/search/searchpage/${keyword}`;
             });
+            searchInputEle.addEventListener('keydown',(event)=>{
+                if (event.key === "Enter"){
+                    const keyword = encodeURIComponent( searchInputEle.value);
+                    console.log(`Search ${searchInputEle.value}`);
+                    window.location.href = `/search/searchpage/${keyword}`;
+                }
+                
+            });
+
         };
         
         function fectchNoImg_throttle(delay){ 
