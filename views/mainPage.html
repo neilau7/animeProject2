@@ -206,7 +206,9 @@
             </div>
         </section>
         <section class="result-area">
-            <h3 class="subTitle">隨選</h3>
+            <a href="random" id="random-link">
+                <h3 class="subTitle" >隨選</h3>
+            </a>
             <div id="random" class="img-area">
         
                 
@@ -244,14 +246,15 @@
         generateLinkOfSubTitle();
         
         //remove the link of random subtitle
+    
         const randomLinkEle = document.getElementById('random-link');
-        randomLinkEle.href = "";
+        const randomItemsEle = document.getElementById('random');
 
-        generateArticleChild(hotEle,'hot',30);
-        generateArticleChild(newEle,'new',30);
-        generateArticleChild(randomEle,'random',30);
-        generateArticleChild(weekEle,'week',30);
-        generateArticleChild(monthEle,'month',30);
+        generateArticleChild(hotEle,'hot',15);
+        generateArticleChild(newEle,'new',15);
+        generateArticleChild(randomEle,'random',15);
+        generateArticleChild(weekEle,'week',15);
+        generateArticleChild(monthEle,'month',15);
         generateMyFavotite(myFavoriteEle);
         createSearchLink();
 
@@ -261,6 +264,13 @@
         click_throttle(1000);
         //whenCloseWindow();
         recordThrottle(10000); // upload click and deal with Image Search
+
+        // update random items
+        randomLinkEle.addEventListener('click',(event)=>{
+            event.preventDefault();
+            randomItemsEle.innerHTML = "";
+            generateArticleChild(randomEle,'random',15);
+        })
 
         // main func
         async function generateArticleChild(parentEle,apiType,num){
@@ -300,9 +310,9 @@
                 return starBlockEle;
             };
             
-            function urlListener(element){
+            function urlListener(element){ //star toggle functional
                 element.addEventListener('click',(event)=>{
-                    event.preventDefault();
+                    event.preventDefault(); //阻止默認行為
                     const currentNode = event.target;
                     console.log(`url trigger is ${currentNode.outerHTML}`);
 
@@ -366,7 +376,6 @@
             });
         };
         
-        
         function generateLinkOfSubTitle(){ //add Link to subTitle, like hot, new, ....
           
 
@@ -376,11 +385,14 @@
                 console.log(`ele : \n${ele}`);
                 const titleEle = ele.firstElementChild;
                 const imgAreaEle = ele.firstElementChild.nextElementSibling;
+
                 const apiSegment = imgAreaEle.id;
                 const encodeTitle = encodeURIComponent( titleEle.textContent );
                 const linkEle = document.createElement('a');
 
-                const new_titleEle = titleEle.cloneNode(true);
+                if (apiSegment === "random") return; //neglect random
+
+                const new_titleEle = titleEle.cloneNode(true); //copy code includes child node
                 linkEle.href = `/showallpage/${apiSegment}/${encodeTitle}`;
                 linkEle.id = `${apiSegment}-link`;
                 linkEle.appendChild(new_titleEle);
@@ -396,6 +408,7 @@
 
             
         };
+
 
         // generate My Favorite
         async function generateMyFavotite(parentEle){
