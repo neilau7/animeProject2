@@ -391,6 +391,7 @@
                 const linkEle = document.createElement('a');
 
                 if (apiSegment === "random") return; //neglect random
+                if (apiSegment === "my-favorite") return; //neglect random
 
                 const new_titleEle = titleEle.cloneNode(true); //copy code includes child node
                 linkEle.href = `/showallpage/${apiSegment}/${encodeTitle}`;
