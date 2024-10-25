@@ -805,6 +805,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
             if (results.length === 0){
                 const allResults = await animeTable.find().limit(num);
                 res.json(allResults);
+                return;
             }
             res.json(results);
         }catch(err){
@@ -853,7 +854,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
             if (results.length === 0){
                 const allResults = await animeTable.find().limit(num);
                 res.json(allResults);
-                
+                return;
             }
             res.json(results);
         }catch(err){
@@ -882,6 +883,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
             if (results.length === 0){
                 const allResults = await animeTable.find().limit(num);
                 res.json(allResults);
+                return;
                 
             }
             res.json(results);
