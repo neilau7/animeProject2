@@ -801,12 +801,6 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
                 .skip(skip)
                 .limit(num);
             
-            
-            if (results.length === 0){
-                const allResults = await animeTable.find().limit(num);
-                res.json(allResults);
-                return;
-            }
             res.json(results);
         }catch(err){
             console.log(`hot router err : \n ${err}`);
@@ -851,11 +845,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
                 .sort({ clickWeek: -1 }) // 按照降序排序
                 .skip(skip)
                 .limit(num); // 限制结果数量
-            if (results.length === 0){
-                const allResults = await animeTable.find().limit(num);
-                res.json(allResults);
-                return;
-            }
+            
             res.json(results);
         }catch(err){
             console.log(`week router err : \n ${err}`);
@@ -880,12 +870,7 @@ mongoose.connect(process.env.mongooseUrl).then(async ()=>{
                 .sort({ clickMonth: -1 }) // 按照降序排序
                 .skip(skip)
                 .limit(num); // 限制结果数量
-            if (results.length === 0){
-                const allResults = await animeTable.find().limit(num);
-                res.json(allResults);
-                return;
-                
-            }
+            
             res.json(results);
         }catch(err){
             console.log(`week router err : \n ${err}`);
